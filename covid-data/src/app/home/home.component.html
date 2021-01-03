@@ -1,0 +1,65 @@
+<div class="text-center">
+    <div class="mb-5">
+        <div class="header">
+            <h1>            
+                <img class="img-logo" src="https://firebasestorage.googleapis.com/v0/b/cloudsproject-19900.appspot.com/o/covidlogo.png?alt=media&token=5fe4a014-c911-4715-9eb5-0b4ef1257ecf" alt="logo" />
+                COVID-19
+            </h1>
+        </div>       
+    <h2>Live updates and Statistics</h2>
+    <div class="my-3 table-responsive">
+        <h3 class="text-center">Corona Virus Summary Worldwide</h3>
+        <table class="mx-auto w-auto table" cellspacing="10" cellpadding="10">
+            <tbody>
+                <tr class="ROW_YELLOW">
+                    <td>Total Cases</td>
+                    <td>{{ totalConfirmed! }}</td>
+                </tr>
+                <tr class=ROW_YELLOW>
+                    <td>New Cases</td>
+                    <td>{{ newConfirmed! }}</td>
+                </tr>
+                <tr class=ROW_YELLOW>
+                    <td>Active Cases</td>
+                    <td>{{ activeConfirmed! }}</td>
+                </tr>
+                <tr class=ROW_BLUE>
+                    <td>Total Recovered</td>
+                    <td>{{ totalRecovered! }}</td>
+                </tr>
+                <tr class=ROW_BLUE>
+                    <td>New Recovered</td>
+                    <td>{{ newRecovered! }}</td>
+                </tr>
+                <tr class=ROW_BLUE>
+                    <td>Recovery Rate</td>
+                    <td>{{ recoveryRate! }}</td>
+                </tr>
+                <tr class=ROW_RED>
+                    <td>Total Deaths</td>
+                    <td>{{ totalDeaths! }}</td>
+                </tr>
+                <tr class=ROW_RED>
+                    <td>New Deaths</td>
+                    <td>{{ newDeaths! }}</td>
+                </tr>
+                <tr class=ROW_RED>
+                    <td>Death Rate</td>
+                    <td>{{ deathRate! }}</td>
+                </tr>
+            </tbody>
+        </table>
+        <p class="font-italic">Last Updated: {{ lastUpdated?.toDate() | date }}</p>
+    </div>
+    <div class="chart-wrapper">
+        <h3>Coronavirus Cases Distribution Worldwide</h3>
+        <canvas
+        baseChart height="80"
+        [datasets]="pieChartData"
+        [options]="pieChartOptions"
+        [labels]="pieChartLabels"
+        [chartType]="pieChartType"
+        >
+        </canvas>
+    </div>    
+</div>

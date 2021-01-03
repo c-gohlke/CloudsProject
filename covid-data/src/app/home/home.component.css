@@ -1,0 +1,21 @@
+tr.ROW_YELLOW{
+    background-color:yellow;
+}
+
+tr.ROW_BLUE{
+    background-color:blue;
+}
+
+tr.ROW_RED{
+    background-color:red;
+}
+
+.img-logo {
+    max-width: 50px;  
+    max-height: 50px; 
+}
+
+table {
+    border-spacing: 3px;
+    border-collapse: separate;
+}
