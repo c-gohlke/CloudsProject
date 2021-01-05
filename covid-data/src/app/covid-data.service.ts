@@ -211,8 +211,6 @@ export class covidDataService {
     return this.firestore.collection("daily_data").doc(this.toDateString(date)).valueChanges().pipe(
       map(
         (covidData: any) => {
-          console.log("in checkGlobalDailyData, data is:")
-          console.log(covidData)
           if(covidData){
             if(!covidData["lastUpdated"]){
               return true;
@@ -231,28 +229,33 @@ export class covidDataService {
         }));
   }
 
-  getGlobalDailyData(date: Date){
+  getGlobalDailyData(date: Date): Observable<Object>{
     const httpOptions = {
       headers: new HttpHeaders({ "Content-Type": "application/json"})
     };
-
     let tomorrow = new Date(date)
     tomorrow.setDate(tomorrow.getDate() + 1)
-
     let api_url: string = "https://api.covid19api.com/world?from=" + this.toDateString(date) + "T00:00:00Z&to=" +
     this.toDateString(tomorrow) + "T00:00:00Z"
-
-    console.log("api_url for getting global daily data for day " + this.toDateString(date) + " is : " + api_url)
-
     return this.httpClient.get(api_url, httpOptions)   
   }
 
-  updateGlobalDailyData(newRecovered: number, newConfirmed: number, newDeaths: number, date: Date){
+  updateGlobalDailyData(
+    newConfirmed: number,
+    newRecovered: number,
+    newDeaths: number,
+    totalConfirmed: number,
+    totalRecovered: number,
+    totalDeaths: number,
+    date: Date){
     this.firestore.collection("daily_data").doc(this.toDateString(date)).set(
       {
         newConfirmed: newConfirmed,
         newRecovered: newRecovered,
         newDeaths: newDeaths,
+        totalConfirmed: totalConfirmed,
+        totalRecovered: totalRecovered,
+        totalDeaths: totalDeaths,
         lastUpdated: new Date()
       },
       {
@@ -261,7 +264,7 @@ export class covidDataService {
     );
   }
 
-  loadGlobalDailyData(date: Date): Observable<{newConfirmed: number, newRecovered: number, newDeaths: number}>{
+  loadGlobalDailyData(date: Date): Observable<{newConfirmed: number, newRecovered: number, newDeaths: number, totalConfirmed: number, totalRecovered: number, totalDeaths: number}>{
     return this.firestore.collection("daily_data").doc(this.toDateString(date)).valueChanges().pipe(
       map(
         (dailyData: any) => {
@@ -270,6 +273,9 @@ export class covidDataService {
               newConfirmed: dailyData.newConfirmed,
               newRecovered: dailyData.newRecovered,
               newDeaths: dailyData.newDeaths,
+              totalConfirmed: dailyData.totalConfirmed,
+              totalRecovered: dailyData.totalRecovered,
+              totalDeaths: dailyData.totalDeaths,
             }
           }
           else{
@@ -277,10 +283,45 @@ export class covidDataService {
               newConfirmed: -1,
               newRecovered: -1,
               newDeaths: -1,
+              totalConfirmed: -1,
+              totalRecovered: -1,
+              totalDeaths: -1,
             }
           }
       })
     );
+  }
+
+  checkGlobalDailyDataRange(startDate: Date, endDate: Date): Observable<boolean>{
+    return this.firestore.collection("daily_data").doc(this.toDateString(startDate)).valueChanges().pipe( //TODO: improve check
+      map(
+        (covidData: any) => {
+          if(covidData){
+            if(!covidData["lastUpdated"]){
+              return true;
+            }
+            // if lastUpdate happened more than a day ago, fetch new data
+            else if(new Date().getTime() - covidData["lastUpdated"].toDate().getTime()>1000*3600*24){
+              return true;
+            }
+            else{
+              return false
+            }
+          }
+          else{
+            return true;
+          }
+        }));
+  }
+
+  getGlobalDailyDataRange(startDate: Date, endDate: Date): Observable<Object>{
+    const httpOptions = {
+      headers: new HttpHeaders({ "Content-Type": "application/json"})
+    };
+
+    let api_url: string = "https://api.covid19api.com/world?from=" + this.toDateString(startDate) + "T00:00:00Z&to=" +
+    this.toDateString(endDate) + "T00:00:00Z"
+    return this.httpClient.get(api_url, httpOptions)   
   }
 
   checkCountriesList(): Observable<boolean>{
