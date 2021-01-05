@@ -61,5 +61,16 @@
         [chartType]="pieChartType"
         >
         </canvas>
-    </div>    
+    </div>
+    <div>
+        <h3>Daily Coronavirus Cases Worldwide</h3>
+        <canvas baseChart
+            [datasets]="barChartData"
+            [labels]="barChartLabels"
+            [options]="barChartOptions"
+            [legend]="barChartLegend"
+            [chartType]="barChartType">
+        </canvas>
+        </div>
+    </div>
 </div>
