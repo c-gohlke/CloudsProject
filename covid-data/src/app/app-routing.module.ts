@@ -1,12 +1,12 @@
 import { NgModule } from '@angular/core';
 import { Routes, RouterModule } from '@angular/router';
-import { AuthGuard } from './auth.guard';
 import { HomeComponent } from './home/home.component';
-import { SecurePagesGuard } from './secure-pages.guard';
+import { CountriesComponent } from './countries/countries.component';
 
 const routes: Routes = [
     { path: "", component: HomeComponent},
-    { path: "**", redirectTo: "signin"}
+    { path: "countries/:country", component: CountriesComponent},
+    { path: "**", redirectTo: "signin"},
 ];
 
 @NgModule({

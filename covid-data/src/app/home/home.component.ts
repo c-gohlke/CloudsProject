@@ -1,9 +1,9 @@
 import { Component, OnInit, ViewChild } from '@angular/core';
-import { covidDataService } from '../covid-data.service';
-import { CovidData } from '../covid-data.model';
+import { worldDataService } from '../services/world-data.service';
+import { countryListService } from '../services/country-list.service';
+import { CovidData } from '../models/covid-data.model';
 import { Label, monkeyPatchChartJsTooltip, monkeyPatchChartJsLegend, BaseChartDirective } from 'ng2-charts';
 import { ChartOptions, ChartType, ChartDataSets } from 'chart.js';
-import { createOfflineCompileUrlResolver } from '@angular/compiler';
 import { __importDefault } from 'tslib';
 
 @Component({
@@ -49,7 +49,7 @@ export class HomeComponent implements OnInit {
   public lineChartLegend = true;
   public lineChartType: ChartType = 'line';
 
-  constructor(public covidDataService: covidDataService) {
+  constructor(public worldDataService: worldDataService, public countryListService: countryListService) {
     monkeyPatchChartJsTooltip();
     monkeyPatchChartJsLegend();
   };
@@ -116,7 +116,7 @@ export class HomeComponent implements OnInit {
 
         let labels: Label[] = new Array();
         for (let date of this.getDaysArray(daysago7, today)){
-          labels.push(this.covidDataService.toDateString(date));
+          labels.push(this.worldDataService.toDateString(date));
         }
         this.barChartLabels = labels;
 
@@ -132,7 +132,7 @@ export class HomeComponent implements OnInit {
         ];
         let labels: Label[] = new Array();
         for (let date of this.getDaysArray(since, today)){
-          labels.push(this.covidDataService.toDateString(date));
+          labels.push(this.worldDataService.toDateString(date));
         }
         this.lineChartLabels = labels;
       })
@@ -141,7 +141,7 @@ export class HomeComponent implements OnInit {
   }
 
   loadLiveData(){
-    return this.covidDataService.firestore.collection("daily_data").doc("live").get().toPromise();
+    return this.worldDataService.firestore.collection("daily_data").doc("live").get().toPromise();
   };
 
   loadSinceData(since: Date, untill: Date){
@@ -149,7 +149,7 @@ export class HomeComponent implements OnInit {
   }
 
   async loadTotalDataFor(dateArray: Array<Date>): Promise<Object>{
-    return this.covidDataService.loadGlobalDailyDataRange(dateArray).then((dailyDataArray)=>{
+    return this.worldDataService.loadGlobalDailyDataRange(dateArray).then((dailyDataArray)=>{
     
       let totalConfirmedArray: number[] = new Array();
       let totalRecoveredArray: number[] = new Array();
@@ -170,12 +170,12 @@ export class HomeComponent implements OnInit {
   }
 
   async updateFirebaseLiveData(): Promise<void>{
-    return this.covidDataService.checkLiveData().then((updateBool: boolean)=>{
+    return this.worldDataService.checkLiveData().then((updateBool: boolean)=>{
       console.log("checkLiveData updateBool is " + updateBool);
       if (updateBool) {
         console.log("updating live data");
   
-        return this.covidDataService.getLiveData().then((res: any) => {
+        return this.worldDataService.getLiveData().then((res: any) => {
           let tConfirmed: number = res["Global"]["TotalConfirmed"];
           let tDeaths: number = res["Global"]["TotalDeaths"];
           let tRecovered: number = res["Global"]["TotalRecovered"];
@@ -192,7 +192,7 @@ export class HomeComponent implements OnInit {
             totalDeaths: tDeaths,
             totalRecovered: tRecovered
           };
-          return this.covidDataService.updateLiveData(newData).then(()=>{
+          return this.worldDataService.updateLiveData(newData).then(()=>{
             console.log("live data updated");
           })
         });
@@ -205,14 +205,14 @@ export class HomeComponent implements OnInit {
   }
 
   updateFirebaseCountries(){
-    this.covidDataService.checkCountriesList().subscribe((checkUpdateCountriesList: boolean) =>{
+    this.countryListService.checkCountriesList().then((checkUpdateCountriesList: boolean) =>{
       if(checkUpdateCountriesList){
-        this.covidDataService.getCountriesList().subscribe((countryObjList: any) => {
+        this.countryListService.getCountriesList().subscribe((countryObjList: any) => {
           let countrySlugList = [];
           for (let countryObj of countryObjList) {
             countrySlugList.push(countryObj.Slug);
           }
-          this.covidDataService.updateCountriesList(countrySlugList);
+          this.countryListService.updateCountriesList(countrySlugList);
         });
       }
     });
@@ -220,11 +220,11 @@ export class HomeComponent implements OnInit {
 
   async updateFirebaseDailyData(since: Date){
     let dateArray = this.getDaysArray(since, new Date());
-    return this.covidDataService.checkGlobalDailyData(since).then((updateBool: boolean)=>{
+    return this.worldDataService.checkGlobalDailyData(since).then((updateBool: boolean)=>{
       console.log("checkGlobalDailyData updateBool is " + updateBool);
       if (updateBool) {
         console.log("updating daily data");
-        return this.covidDataService.getGlobalDailyDataRange(since, new Date()).then((array) => {
+        return this.worldDataService.getGlobalDailyDataRange(since, new Date()).then((array) => {
           let totalConfirmed: any[] = [];
           let totalRecovered: any[] = [];
           let totalDeaths: any[] = [];
@@ -238,7 +238,7 @@ export class HomeComponent implements OnInit {
           totalDeaths = totalDeaths.sort((a_2, b_2) => a_2 - b_2);
   
           for (let index of Array.from(Array(array.length).keys())) {
-            this.covidDataService.updateGlobalDailyData(
+            this.worldDataService.updateGlobalDailyData(
               totalConfirmed[index],
               totalRecovered[index],
               totalDeaths[index],
