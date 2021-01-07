@@ -226,19 +226,6 @@ export class covidDataService {
       validIDs.push(this.toDateString(date))
     }
 
-    // return docRef.get().then(async (collection: any)=>{
-    //   let validDocs: Array<any> = new Array();
-
-    //   const promises = collection.docs.map(async (doc: any) => {
-    //     if(validIDs.includes(doc.get("id"))){
-    //       validDocs.push(doc)
-    //     }
-    //     return
-    //   })
-    //   await Promise.all(promises)
-    //   return validDocs
-    // });
-
     return docRef.get().then((collection: any)=>{
       let validDocs: Array<any> = new Array();
 

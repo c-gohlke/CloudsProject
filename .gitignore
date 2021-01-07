@@ -4,3 +4,5 @@ Guidelines.pdf
 /covid-data/dist
 /covid-data/.firebase/
 /covid-data/node_modules
+/node_modules
+/package-lock.json
