@@ -8,6 +8,7 @@ import { CovidData } from './covid-data.model';
 import { HttpClient, HttpErrorResponse, HttpHeaders } from '@angular/common/http';
 import { Observable, throwError } from "rxjs";
 import { catchError, map } from "rxjs/operators";
+import { identifierModuleUrl } from '@angular/compiler';
 
 @Injectable({
   providedIn: 'root'
@@ -15,14 +16,6 @@ import { catchError, map } from "rxjs/operators";
 
 export class covidDataService {
   private user: User | undefined | null;
-  private MONTHS: String[] = ["01", "02", "03", "04", "05", "06", "07",
-  "08", "09", "10", "11", "12"];
-
-  private DAYS: String[] = ["00", "01", "02", "03", "04", "05", "06", "07",
-  "08", "09", "10", "11", "12", "13", "14", "15", "16", "17",
-  "18", "19", "20", "21", "22", "23", "24", "25", "26", "27",
-  "28", "29", "30", "31"];
-
   constructor(
     private afAuth: AngularFireAuth,
     private router: Router,
@@ -203,18 +196,13 @@ export class covidDataService {
   }
 
   updateGlobalDailyData(
-    // newConfirmed: number,
-    // newRecovered: number,
-    // newDeaths: number,
     totalConfirmed: number,
     totalRecovered: number,
     totalDeaths: number,
     date: Date): Promise<void>{
     return this.firestore.collection("daily_data").doc(this.toDateString(date)).set(
       {
-        // newConfirmed: newConfirmed,
-        // newRecovered: newRecovered,
-        // newDeaths: newDeaths,
+        id: this.toDateString(date),
         totalConfirmed: totalConfirmed,
         totalRecovered: totalRecovered,
         totalDeaths: totalDeaths,
@@ -232,9 +220,34 @@ export class covidDataService {
 
   async loadGlobalDailyDataRange(dateArray: Array<Date>): Promise<any>{
     let docRef = (this.firestore.collection("daily_data").ref);
-    // return docRef.where('total_deaths', 'in', ["2020-04-13","2020-04-14","1818008"]).get().then((docs)=>{
-    return docRef.get().then((docs)=>{
-      return docs.docs
+
+    let validIDs: Array<String> = new Array()
+    for (let date of dateArray){
+      validIDs.push(this.toDateString(date))
+    }
+
+    // return docRef.get().then(async (collection: any)=>{
+    //   let validDocs: Array<any> = new Array();
+
+    //   const promises = collection.docs.map(async (doc: any) => {
+    //     if(validIDs.includes(doc.get("id"))){
+    //       validDocs.push(doc)
+    //     }
+    //     return
+    //   })
+    //   await Promise.all(promises)
+    //   return validDocs
+    // });
+
+    return docRef.get().then((collection: any)=>{
+      let validDocs: Array<any> = new Array();
+
+      collection.docs.map((doc: any) => {
+        if(validIDs.includes(doc.get("id"))){
+          validDocs.push(doc)
+        }
+      })
+      return validDocs
     });
   }
 
@@ -331,6 +344,14 @@ export class covidDataService {
   }
 
   toDateString(date: Date): string{
-    return date.getFullYear() + "-" + this.MONTHS[date.getMonth()] + "-" + this.DAYS[date.getDate()];
+    return date.getFullYear() + "-" + 
+    ["01", "02", "03", "04", "05", "06", "07",
+    "08", "09", "10", "11", "12"][date.getMonth()]
+    + "-" + 
+    ["00", "01", "02", "03", "04", "05", "06", "07",
+    "08", "09", "10", "11", "12", "13", "14", "15", "16", "17",
+    "18", "19", "20", "21", "22", "23", "24", "25", "26", "27",
+    "28", "29", "30", "31"][date.getDate()
+    ];
   }
 }
