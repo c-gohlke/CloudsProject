@@ -35,6 +35,7 @@ export class HomeComponent implements OnInit {
   sinceApril13Confirmed: number[] = new Array(this.sinceApril13.length)
   sinceApril13Recovered: number[] = new Array(this.sinceApril13.length)
   sinceApril13Deaths: number[] = new Array(this.sinceApril13.length)
+  todayData: any = new Object();
 
   getDaysArray(start:Date, end: Date): Array<Date> {
     for(var arr=[],dt=new Date(start); dt<=end; dt.setDate(dt.getDate()+1)){
@@ -57,11 +58,10 @@ export class HomeComponent implements OnInit {
 
   globalDailyData: Array<{ newConfirmed: number, newRecovered: number, newDeaths: number, dateString: string }> = new Array(7);
 
-  PIE_CHART_TITLE = 'Coronavirus Cases Distribution Worldwide';
   public pieChartOptions: ChartOptions = {
     responsive: true,
     title: {
-      text: this.PIE_CHART_TITLE,
+      text: 'Coronavirus Cases Distribution Worldwide',
       display: false
     }
   };
@@ -81,96 +81,151 @@ export class HomeComponent implements OnInit {
   };
   public barChartType: ChartType = 'bar';
   public barChartLegend: boolean = true;
-  public barChartData: any[] = [
-    {data:  this.last7Confirmed, label: "New Confirmed"},
-    {data:  this.last7Recovered, label: "New Recovered"},
-    {data:  this.last7Deaths, label: "New Deaths"}
-  ];
+  public barChartData: any[] = [];
   public barChartLabels: Label[] = new Array(7);
 
-
-  public barChartOptions2: ChartOptions = {
+  public lineChartData: ChartDataSets[] = [];
+  public lineChartLabels: Label[] = [];
+  public lineChartOptions = {
     responsive: true,
-    scales: { xAxes: [{}], yAxes: [{}] },
-    plugins: {
-      datalabels: {
-        anchor: 'end',
-        align: 'end',
-      }
-    }
   };
-  public barChartType2: ChartType = 'bar';
-  public barChartLegend2: boolean = true;
-  public barChartData2: any[] = [
-    {data:  this.sinceApril13Confirmed, label: "Total Confirmed"},
-    {data:  this.sinceApril13Recovered, label: "Total Recovered"},
-    {data:  this.sinceApril13Deaths, label: "Total Deaths"}
-  ];
-  public barChartLabels2: Label[] = new Array(this.sinceApril13.length);
+  public lineChartLegend = true;
+  public lineChartType: ChartType = 'line';
 
   constructor(public covidDataService: covidDataService) {
     monkeyPatchChartJsTooltip();
     monkeyPatchChartJsLegend();
-
-    this.last7days = [
-      new Date(new Date().setDate(new Date().getDate()-6)),
-      new Date(new Date().setDate(new Date().getDate()-5)),
-      new Date(new Date().setDate(new Date().getDate()-4)),
-      new Date(new Date().setDate(new Date().getDate()-3)),
-      new Date(new Date().setDate(new Date().getDate()-2)), 
-      new Date(new Date().setDate(new Date().getDate()-1)),
-      new Date()
-    ];
   }
 
+  //on start: ----------------------->
   ngOnInit(): void {
-    this.covidDataService.checkGlobalData().subscribe((checkUpdateData: boolean)=>{
-      if(checkUpdateData){
-        this.covidDataService.getGlobalData().subscribe((res: any)=>{
+    this.updateFirebaseCountries()
+
+    this.updateFirebaseLiveData().then(() =>{
+
+      this.loadLiveData().then((liveData: any) => {
+        console.log("Live data loaded")
+        this.pieChartData = [{
+          data: [
+            liveData.get("totalDeaths"),
+            liveData.get("totalRecovered"),
+            liveData.get("activeConfirmed")
+          ],
+        }];
+
+        this.todayData = {
+          activeConfirmed: liveData.get("activeConfirmed"),
+          deathRate: (liveData.get("deathRate")*100).toFixed(2) + "%",
+          lastUpdated: liveData.get("lastUpdated"),
+          newConfirmed: liveData.get("newConfirmed"),
+          newDeaths: liveData.get("newDeaths"),
+          newRecovered: liveData.get("newRecovered"),
+          recoveryRate: (liveData.get("recoveryRate")*100).toFixed(2) + "%",
+          totalConfirmed: liveData.get("totalConfirmed"),
+          totalDeaths: liveData.get("totalDeaths"),
+          totalRecovered: liveData.get("totalRecovered")
+        }
+      })
+    })
+    
+    let since: Date = new Date("2020-04-13")
+    this.updateFirebaseDailyData(since).then(()=>{
+
+      this.loadWeeklyData().then((data: any)=>{
+        console.log("Weekly data loaded")
+        this.barChartData = [
+          {data: data["totalDeaths"], label: "New Deaths"}, //TODO: most be new
+          {data: data["totalRecovered"], label: "New Recovered"}, //TODO: most be new
+          {data: data["totalConfirmed"], label: "New Confirmed"} //TODO: most be new
+        ]
+        this.barChartLabels = Array.from(String(Array(data["totalDeaths"].length).keys()))
+      })
+      
+      this.loadSinceData(since).then((data: any)=>{
+        console.log("Since 2020-04-13 data loaded")
+        
+        this.lineChartData = [
+          {data: data["totalDeaths"], label: "Total Deaths"},
+          {data: data["totalRecovered"], label: "Total Recovered"},
+          {data: data["totalConfirmed"], label: "Total Confirmed"}
+        ]
+        this.lineChartLabels = Array.from(String(Array(data["totalDeaths"].length).keys()))
+      })
+    })
+  }
+
+  loadLiveData(){
+    return this.covidDataService.firestore.collection("daily_data").doc("live").get().toPromise()
+  };
+
+  loadWeeklyData(){
+    let today = new Date();
+    let last_week = new Date(new Date().setDate(today.getDate()-7));
+    return this.loadTotalDataFor(this.getDaysArray(last_week, today))
+  }
+
+  loadSinceData(since: Date){
+    let today = new Date();
+    return this.loadTotalDataFor(this.getDaysArray(since, today))
+  }
+
+  async loadTotalDataFor(dateArray: Array<Date>): Promise<Object>{
+    return this.covidDataService.loadGlobalDailyDataRange(dateArray).then((dailyDataArray)=>{
+
+      let totalConfirmedArray: number[] = new Array()
+      let totalRecoveredArray: number[] = new Array()
+      let totalDeathsArray: number[] = new Array()
+
+      for (let doc of dailyDataArray){
+        totalConfirmedArray.push(doc.get("totalConfirmed"))
+        totalRecoveredArray.push(doc.get("totalRecovered"))
+        totalDeathsArray.push(doc.get("totalDeaths"))
+      }
+
+      return {
+        totalConfirmed: totalConfirmedArray,
+        totalRecovered: totalRecoveredArray,
+        totalDeaths: totalDeathsArray,
+      }
+    })
+  }
+
+  async updateFirebaseLiveData(): Promise<void>{
+    return this.covidDataService.checkLiveData().then((updateBool: boolean)=>{
+      console.log("checkLiveData updateBool is " + updateBool)
+      if (updateBool) {
+        console.log("updating live data");
+  
+        return this.covidDataService.getLiveData().then((res: any) => {
           let tConfirmed: number = res["Global"]["TotalConfirmed"];
           let tDeaths: number = res["Global"]["TotalDeaths"];
           let tRecovered: number = res["Global"]["TotalRecovered"];
-    
+  
           let newData: CovidData = {
             activeConfirmed: tConfirmed - tDeaths - tRecovered,
             newConfirmed: res["Global"]["NewConfirmed"],
-            deathRate: tDeaths/tConfirmed,
+            deathRate: tDeaths / tConfirmed,
             lastUpdated: new Date(),
             newDeaths: res["Global"]["NewDeaths"],
             newRecovered: res["Global"]["NewRecovered"],
-            recoveryRate: tRecovered/tConfirmed,
+            recoveryRate: tRecovered / tConfirmed,
             totalConfirmed: tConfirmed,
             totalDeaths: tDeaths,
             totalRecovered: tRecovered
           };
-          this.covidDataService.updateGlobalData(newData);
+          return this.covidDataService.updateLiveData(newData).then(()=>{
+            console.log("live data updated")
+          })
         });
       }
-    });
+      else {
+        console.log("not updating live data");
+        return
+      }
+    })
+  }
 
-    this.covidDataService.loadGlobalData().subscribe((covidData: CovidData)=>{
-      this.activeConfirmed = covidData["activeConfirmed"];
-      this.deathRate = (covidData["deathRate"]!*100).toFixed(2) + "%";
-      this.lastUpdated = covidData["lastUpdated"];
-      this.newConfirmed = covidData["newConfirmed"];
-      this.newDeaths = covidData["newDeaths"];
-      this.newRecovered = covidData["newRecovered"];
-      this.recoveryRate = (covidData["recoveryRate"]!*100).toFixed(2) + "%";
-      this.totalConfirmed = covidData["totalConfirmed"];
-      this.totalDeaths = covidData["totalDeaths"];
-      this.totalRecovered = covidData["totalRecovered"];
-
-      this.pieChartData = [
-        {
-          data: [
-            this.totalDeaths,
-            this.totalRecovered,
-            this.activeConfirmed
-          ],
-        }
-      ];
-    });
-
+  updateFirebaseCountries(){
     this.covidDataService.checkCountriesList().subscribe((checkUpdateCountriesList: boolean) =>{
       if(checkUpdateCountriesList){
         this.covidDataService.getCountriesList().subscribe((countryObjList: any) => {
@@ -182,162 +237,42 @@ export class HomeComponent implements OnInit {
         });
       }
     });
-
-    // this.covidDataService.checkCountryDailyData().subscribe((updateBool: boolean)=>{
-    //   console.log(updateBool)
-    //   if(updateBool){
-    //     this.covidDataService.loadCountriesList().subscribe((countryList: any) => {
-    //       if(countryList){            
-    //         for (let country of ["france", "germany"]){
-    //         // for (let country of countryList.slugs){ //TODO
-    //           this.covidDataService.getCountryDailyData(country).subscribe((data: any)=>{
-    //             console.log("recieved data for country " + country + " of length " + data.length)
-    //             // for (var _i = 0; _i < data.length; _i++){
-    //             for (var _i = data.length-8; _i < data.length; _i++){
-    //               let dailyEntry = data[_i]
-    //               for (var _j = 0; _j<7; _j++){
-    //                 if(this.toDateString(new Date(dailyEntry.Date)) === this.last7days[_j]){
-    //                   this.globalDailyData[_j].newConfirmed = this.globalDailyData[_j].totalConfirmed + dailyEntry.Confirmed
-    //                   this.globalDailyData[_j].newRecovered = this.globalDailyData[_j].totalRecovered + dailyEntry.Recovered
-    //                   this.globalDailyData[_j].newDeaths = this.globalDailyData[_j].totalDeaths + dailyEntry.Deaths
-    //                   this.globalDailyData[_j].dateString = this.toDateString(new Date(dailyEntry.Date))
-    //                 }
-    //                 console.log()
-    //               }
-    //               this.covidDataService.updateCountryDailyData(country, new Date(dailyEntry.Date), dailyEntry.Confirmed, dailyEntry.Recovered, dailyEntry.Deaths);
-    //             }
-    //           });
-    //         }
-    //         this.covidDataService.updateGlobalDailyData(this.globalDailyData);
-    //         this.covidDataService.updateCountryDailyDataTimestamp();
-    //       }
-    //     });
-    //   }
-    // });
-
-    // for (let day of this.getDaysArray(new Date("2020-04-13"), new Date())){ //load data since April 13th
-    //   this.covidDataService.checkGlobalDailyData(day).subscribe((checkGlobalDailyData: boolean) => {
-    //     console.log("checking global daily data for day " + day + ": " + checkGlobalDailyData)
-
-    //     if(checkGlobalDailyData){
-    //       this.covidDataService.getGlobalDailyData(day).subscribe((globalDailyData: any)=>{
-    //         console.log("getting global daily data for day " + day)
-    //         if(globalDailyData && globalDailyData.length==1){
-    //           this.covidDataService.updateGlobalDailyData(
-    //             globalDailyData[0].NewConfirmed,
-    //             globalDailyData[0].NewRecovered,
-    //             globalDailyData[0].NewDeaths,
-    //             globalDailyData[0].TotalConfirmed,
-    //             globalDailyData[0].TotalRecovered,
-    //             globalDailyData[0].TotalDeaths,
-    //             day
-    //             )
-    //         }
-    //         else {
-    //           this.covidDataService.updateGlobalDailyData(
-    //             0,
-    //             0,
-    //             0,
-    //             0,
-    //             0,
-    //             0,
-    //             day
-    //             )
-    //         }
-    //         console.log("updating global daily data for day " + day)
-    //         }
-    //       );
-    //     }
-    //   })
-    // }
-
-    // let update = false
-    // for (let date of this.sinceApril13){
-    //   this.covidDataService.checkGlobalDailyData(date).subscribe((checkGlobalDailyData: boolean) => {
-    //     if(checkGlobalDailyData){
-    //       update = true
-    //       console.log("UPDATE HAS BEEN SET TO TRUE")
-    //     }
-    //   });
-    //   if(update){
-    //     this.covidDataService.getGlobalDailyDataRange(this.sinceApril13[0], this.sinceApril13[this.sinceApril13.length - 1])
-    //     .subscribe((globalDailyDataArray: any)=>{
-    //       console.log(this.sinceApril13.length)
-    //       console.log(globalDailyDataArray.length)
-    //       for (let _i=0; _i<globalDailyDataArray.length; _i++){
-    //         this.covidDataService.updateGlobalDailyData(
-    //           globalDailyDataArray[_i].NewConfirmed,
-    //           globalDailyDataArray[_i].NewRecovered,
-    //           globalDailyDataArray[_i].NewDeaths,
-    //           globalDailyDataArray[_i].TotalConfirmed,
-    //           globalDailyDataArray[_i].TotalRecovered,
-    //           globalDailyDataArray[_i].TotalDeaths,
-    //           this.sinceApril13[_i]
-    //           )
-    //         }
-    //       }
-    //     );
-    //     break
-    //   }
-    // }
-
-    let update = true
-    for (let date of this.sinceApril13){
-      this.covidDataService.checkGlobalDailyData(date).subscribe((checkGlobalDailyData: boolean) => {
-        if(checkGlobalDailyData && update){
-          update = false
-          console.log("UPDATE HAS BEEN SET TO TRUE")
-          this.covidDataService.getGlobalDailyDataRange(this.sinceApril13[0], this.sinceApril13[this.sinceApril13.length - 1])
-          .subscribe((globalDailyDataArray: any)=>{
-          for (let _i=0; _i<globalDailyDataArray.length; _i++){
-            this.covidDataService.updateGlobalDailyData(
-              globalDailyDataArray[_i].NewConfirmed,
-              globalDailyDataArray[_i].NewRecovered,
-              globalDailyDataArray[_i].NewDeaths,
-              globalDailyDataArray[_i].TotalConfirmed,
-              globalDailyDataArray[_i].TotalRecovered,
-              globalDailyDataArray[_i].TotalDeaths,
-              this.sinceApril13[_i]
-              )
-            }
-          });
-        }
-      });
-      if(!update){
-        break
-      }
-    }   
-
-    for (let _i of Array.from(Array(7).keys())){
-        this.covidDataService.loadGlobalDailyData(this.last7days[_i]).subscribe((dailyData: any)=>{
-        this.last7Confirmed[_i] = dailyData.newConfirmed
-        this.last7Recovered[_i] = dailyData.newRecovered
-        this.last7Deaths[_i] = dailyData.newDeaths
-
-        this.barChartData = [
-          {data: this.last7Deaths, label: "New Deaths"},
-          {data: this.last7Recovered, label: "New Recovered"},
-          {data: this.last7Confirmed, label: "New Confirmed"}
-        ]
-      });
-      this.barChartLabels[_i] = this.toDateString(this.last7days[_i])
-    }
-
-    for (let _i of Array.from(Array(this.sinceApril13.length).keys())){
-      this.covidDataService.loadGlobalDailyData(this.sinceApril13[_i]).subscribe((dailyData: any)=>{
-      this.sinceApril13Confirmed[_i] = dailyData.totalConfirmed
-      this.sinceApril13Recovered[_i] = dailyData.totalRecovered
-      this.sinceApril13Deaths[_i] = dailyData.totalDeaths
-
-      this.barChartData2 = [
-        {data: this.sinceApril13Deaths, label: "Total Deaths"},
-        {data: this.sinceApril13Recovered, label: "Total Recovered"},
-        {data: this.sinceApril13Confirmed, label: "Total Confirmed"}
-      ]
-    });
-    this.barChartLabels2[_i] = this.toDateString(this.sinceApril13[_i])
-    }
   }
 
+  async updateFirebaseDailyData(since: Date){
+    let dateArray = this.getDaysArray(since, new Date())
+    return this.covidDataService.checkGlobalDailyData(since).then((updateBool: boolean)=>{
+      console.log("checkGlobalDailyData updateBool is " + updateBool)
+      if (updateBool) {
+        console.log("updating daily data");
+        return this.covidDataService.getGlobalDailyDataRange(since, new Date()).then((array) => {
+          let totalConfirmed: any[] = [];
+          let totalRecovered: any[] = [];
+          let totalDeaths: any[] = [];
+          array.forEach((dataElem: { TotalConfirmed: any; TotalRecovered: any; TotalDeaths: any; }) => {
+            totalConfirmed.push(dataElem.TotalConfirmed);
+            totalRecovered.push(dataElem.TotalRecovered);
+            totalDeaths.push(dataElem.TotalDeaths);
+          });
+          totalConfirmed = totalConfirmed.sort((a, b) => a - b);
+          totalRecovered = totalRecovered.sort((a_1, b_1) => a_1 - b_1);
+          totalDeaths = totalDeaths.sort((a_2, b_2) => a_2 - b_2);
   
+          for (let index of Array.from(Array(array.length).keys())) {
+            this.covidDataService.updateGlobalDailyData(
+              totalConfirmed[index],
+              totalRecovered[index],
+              totalDeaths[index],
+              dateArray[index]
+            )
+          }
+          return
+        });
+      }
+      else {
+        console.log("not updating daily data");
+        return
+      }
+    })
+  }
 }

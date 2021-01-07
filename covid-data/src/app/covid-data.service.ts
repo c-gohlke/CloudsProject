@@ -68,38 +68,35 @@ export class covidDataService {
     this.router.navigate(["signin"]);
   }
 
-  checkGlobalData(): Observable<boolean>{
-    return this.firestore.collection("covid_data").doc("global").valueChanges().pipe(
-      map(
-        (covidData: any) => {
-          if(covidData){
-            if(!covidData["lastUpdated"]){
-              return true;
-            }
-            // if lastUpdate happened more than a day ago, fetch new data
-            else if(new Date().getTime() - covidData["lastUpdated"].toDate().getTime()>1000*3600*24){
-              return true;
-            }
-            else{
-              return false
-            }
-          }
-          else{
-            return true;
-          }
-        }));
+  async checkLiveData(): Promise<boolean>{
+    return this.firestore.collection("daily_data").doc("live").get().toPromise().then((doc: any)=>{
+      if(doc){
+        if(!doc.get("lastUpdated")){
+          return true;
+        }
+        // if lastUpdate happened more than a day ago, fetch new data
+        else if(new Date().getTime() - doc.get("lastUpdated").toDate().getTime()>1000*3600*24){
+          return true;
+        }
+        else{
+          return false
+        }
+      }
+      else{
+        return true;
+      }
+    });
   }
 
-  getGlobalData(){
+  getLiveData(){
     const httpOptions = {
       headers: new HttpHeaders({ "Content-Type": "application/json"})
     };
-
-    return this.httpClient.get("https://api.covid19api.com/summary", httpOptions)
+    return this.httpClient.get("https://api.covid19api.com/summary", httpOptions).toPromise()
   }
 
-  updateGlobalData(newData: CovidData){
-    this.firestore.collection("covid_data").doc("global").set({
+  updateLiveData(newData: CovidData): Promise<void>{
+    return this.firestore.collection("daily_data").doc("live").set({
       activeConfirmed: newData.activeConfirmed,
       deathRate: newData.deathRate,
       lastUpdated: newData.lastUpdated,
@@ -113,43 +110,8 @@ export class covidDataService {
     }, {merge: true})
   }
 
-
-  loadGlobalData(): Observable<CovidData>{
-    return this.firestore.collection("covid_data").doc("global").valueChanges().pipe(
-      map(
-        (covidData: any) => {
-          let newData: CovidData
-          if(covidData){
-            newData = {
-              activeConfirmed: covidData["activeConfirmed"],
-              newConfirmed: covidData["newConfirmed"],
-              deathRate: covidData["deathRate"],
-              lastUpdated: covidData["lastUpdated"],
-              newDeaths: covidData["newDeaths"],
-              newRecovered: covidData["newRecovered"],
-              recoveryRate: covidData["recoveryRate"],
-              totalConfirmed: covidData["totalConfirmed"],
-              totalDeaths: covidData["totalDeaths"],
-              totalRecovered: covidData["totalRecovered"]
-            };
-          }
-          else{
-            newData = {
-              activeConfirmed: -1,
-              newConfirmed: -1,
-              deathRate: -1,
-              lastUpdated: null,
-              newDeaths: -1,
-              newRecovered: -1,
-              recoveryRate: -1,
-              totalConfirmed: -1,
-              totalDeaths: -1,
-              totalRecovered: -1
-            };
-          }
-        return newData;
-      })
-    );
+  async loadLiveData(): Promise<any>{
+    return this.firestore.collection("daily_data").doc("live").get().toPromise()
   }
 
   checkCountryDailyData(): Observable<boolean>{
@@ -207,27 +169,27 @@ export class covidDataService {
     );
   }
 
-  checkGlobalDailyData(date: Date): Observable<boolean>{
-    return this.firestore.collection("daily_data").doc(this.toDateString(date)).valueChanges().pipe(
-      map(
-        (covidData: any) => {
-          if(covidData){
-            if(!covidData["lastUpdated"]){
-              return true;
-            }
-            // if lastUpdate happened more than a day ago, fetch new data
-            else if(new Date().getTime() - covidData["lastUpdated"].toDate().getTime()>1000*3600*24){
-              return true;
-            }
-            else{
-              return false
-            }
-          }
-          else{
-            return true;
-          }
-        }));
+  checkGlobalDailyData(date: Date): Promise<boolean>{
+    return this.firestore.collection("daily_data").doc(this.toDateString(date)).get().toPromise().then((covidData: any)=>{
+      if (covidData) {
+        if (!covidData.get("lastUpdated")) {
+          return true;
+        }
+
+        // if lastUpdate happened more than a day ago, fetch new data
+        else if (new Date().getTime() - covidData.get("lastUpdated").toDate().getTime() > 1000 * 3600 * 24) {
+          return true;
+        }
+        else {
+          return false;
+        }
+      }
+      else {
+        return true;
+      }
+    })
   }
+
 
   getGlobalDailyData(date: Date): Observable<Object>{
     const httpOptions = {
@@ -241,18 +203,18 @@ export class covidDataService {
   }
 
   updateGlobalDailyData(
-    newConfirmed: number,
-    newRecovered: number,
-    newDeaths: number,
+    // newConfirmed: number,
+    // newRecovered: number,
+    // newDeaths: number,
     totalConfirmed: number,
     totalRecovered: number,
     totalDeaths: number,
-    date: Date){
-    this.firestore.collection("daily_data").doc(this.toDateString(date)).set(
+    date: Date): Promise<void>{
+    return this.firestore.collection("daily_data").doc(this.toDateString(date)).set(
       {
-        newConfirmed: newConfirmed,
-        newRecovered: newRecovered,
-        newDeaths: newDeaths,
+        // newConfirmed: newConfirmed,
+        // newRecovered: newRecovered,
+        // newDeaths: newDeaths,
         totalConfirmed: totalConfirmed,
         totalRecovered: totalRecovered,
         totalDeaths: totalDeaths,
@@ -264,32 +226,16 @@ export class covidDataService {
     );
   }
 
-  loadGlobalDailyData(date: Date): Observable<{newConfirmed: number, newRecovered: number, newDeaths: number, totalConfirmed: number, totalRecovered: number, totalDeaths: number}>{
-    return this.firestore.collection("daily_data").doc(this.toDateString(date)).valueChanges().pipe(
-      map(
-        (dailyData: any) => {
-          if(dailyData){
-            return {
-              newConfirmed: dailyData.newConfirmed,
-              newRecovered: dailyData.newRecovered,
-              newDeaths: dailyData.newDeaths,
-              totalConfirmed: dailyData.totalConfirmed,
-              totalRecovered: dailyData.totalRecovered,
-              totalDeaths: dailyData.totalDeaths,
-            }
-          }
-          else{
-            return {
-              newConfirmed: -1,
-              newRecovered: -1,
-              newDeaths: -1,
-              totalConfirmed: -1,
-              totalRecovered: -1,
-              totalDeaths: -1,
-            }
-          }
-      })
-    );
+  loadGlobalDailyData(date: Date): Promise<any>{
+    return this.firestore.collection("daily_data").doc(this.toDateString(date)).get().toPromise();
+  }
+
+  async loadGlobalDailyDataRange(dateArray: Array<Date>): Promise<any>{
+    let docRef = (this.firestore.collection("daily_data").ref);
+    // return docRef.where('total_deaths', 'in', ["2020-04-13","2020-04-14","1818008"]).get().then((docs)=>{
+    return docRef.get().then((docs)=>{
+      return docs.docs
+    });
   }
 
   checkGlobalDailyDataRange(startDate: Date, endDate: Date): Observable<boolean>{
@@ -314,14 +260,24 @@ export class covidDataService {
         }));
   }
 
-  getGlobalDailyDataRange(startDate: Date, endDate: Date): Observable<Object>{
+  getGlobalDailyDataRange(startDate: Date, endDate: Date): Promise<any>{
     const httpOptions = {
       headers: new HttpHeaders({ "Content-Type": "application/json"})
     };
 
     let api_url: string = "https://api.covid19api.com/world?from=" + this.toDateString(startDate) + "T00:00:00Z&to=" +
     this.toDateString(endDate) + "T00:00:00Z"
-    return this.httpClient.get(api_url, httpOptions)   
+    return this.httpClient.get(api_url, httpOptions).toPromise()
+  }
+
+  getGlobalDailyDataRangeTest(startDate: Date, endDate: Date): Promise<Object>{
+    const httpOptions = {
+      headers: new HttpHeaders({ "Content-Type": "application/json"})
+    };
+
+    let api_url: string = "https://api.covid19api.com/world?from=" + this.toDateString(startDate) + "T00:00:00Z&to=" +
+    this.toDateString(endDate) + "T00:00:00Z"
+    return this.httpClient.get(api_url, httpOptions).toPromise()
   }
 
   checkCountriesList(): Observable<boolean>{
