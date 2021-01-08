@@ -1,0 +1,16 @@
+tr.ROW_YELLOW{
+    background-color:yellow;
+}
+
+tr.ROW_BLUE{
+    background-color:blue;
+}
+
+tr.ROW_RED{
+    background-color:red;
+}
+
+table {
+    border-spacing: 3px;
+    border-collapse: separate;
+}

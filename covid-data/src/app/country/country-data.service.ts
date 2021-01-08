@@ -160,4 +160,100 @@ export class countryDataService {
     "28", "29", "30", "31"][date.getDate()
     ];
   }
+
+  loadSinceCountryData(country: string, since: Date, untill: Date){
+    return this.loadTotalCountryDataFor(country, this.getDaysArray(since, untill));
+  }
+
+  async loadTotalCountryDataFor(country: string, dateArray: Array<Date>): Promise<Object>{
+    return this.loadDailyCountryDataRange(country, dateArray).then(async (dailyDataArray)=>{
+    
+      let totalConfirmedArray: number[] = new Array();
+      let totalRecoveredArray: number[] = new Array();
+      let totalDeathsArray: number[] = new Array();
+
+      for (let doc of dailyDataArray){
+        const docRef = await doc.ref.collection("countries").doc(country).get()
+
+        totalConfirmedArray.push(docRef.get("totalConfirmed"));
+        totalRecoveredArray.push(docRef.get("totalRecovered"));
+        totalDeathsArray.push(docRef.get("totalDeaths"));
+      }
+
+      return {
+        totalConfirmed: totalConfirmedArray,
+        totalRecovered: totalRecoveredArray,
+        totalDeaths: totalDeathsArray,
+      };
+    })
+  }
+
+    async updateFirebaseLiveCountryData(country: string): Promise<void>{
+        return this.checkLiveCountryData(country).then((updateBool: boolean)=>{
+            console.log("checkLiveData updateBool is " + updateBool);
+            if (updateBool) {
+                console.log("updating live data");
+        
+                return this.getLiveData().then((res: any) => {
+                    let newData: any
+                    for (let cDetails of res["Countries"]){
+                        if (cDetails.Slug === country){
+                            let tConfirmed: number = cDetails["TotalConfirmed"]
+                            let tDeaths: number = cDetails["TotalDeaths"];
+                            let tRecovered: number = cDetails["TotalRecovered"];
+                            newData = {
+                                activeConfirmed: tConfirmed - tDeaths - tRecovered,
+                                newConfirmed: cDetails["NewConfirmed"],
+                                deathRate: tDeaths / tConfirmed,
+                                lastUpdated: new Date(),
+                                newDeaths: cDetails["NewDeaths"],
+                                newRecovered: cDetails["NewRecovered"],
+                                recoveryRate: tRecovered / tConfirmed,
+                                totalConfirmed: tConfirmed,
+                                totalDeaths: tDeaths,
+                                totalRecovered: tRecovered
+                            };
+                        }
+                    }
+
+                    return this.updateLiveCountryData(country, newData).then(()=>{
+                        console.log("live data updated");
+                    })
+                });
+            }
+            else {
+                console.log("not updating live data");
+                return;
+            }
+        })
+    }
+
+  async updateFirebaseDailyCountryData(country: string, since: Date){
+    const updateBool = await this.checkDailyCountryData(country, since)
+    console.log("checkGlobalDailyData updateBool is " + updateBool);
+    if (updateBool) {
+      console.log("updating daily data");
+      const array = await this.getDailyCountryData(country)
+
+      array.forEach((dataElem: any) => {
+        this.updateDailyCountryData(
+          country,
+          dataElem["Confirmed"],
+          dataElem["Recovered"],
+          dataElem["Deaths"],
+          new Date(dataElem["Date"])
+        );
+      });
+    }
+    else {
+      console.log("not updating daily data");
+    }
+  }
+
+  getDaysArray(start:Date, end: Date): Array<Date> {
+    for(var arr=[],dt=new Date(start); dt<=end; dt.setDate(dt.getDate()+1)){
+        arr.push(new Date(dt));
+    }
+    return arr;
+  };
 }

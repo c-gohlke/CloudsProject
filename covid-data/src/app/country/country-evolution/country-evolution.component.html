@@ -1,0 +1,20 @@
+<div class="chart-wrapper">
+    <h3>Daily Coronavirus Cases in {{country}}</h3>
+    <canvas baseChart
+        [datasets]="barChartData"
+        [labels]="barChartLabels"
+        [options]="barChartOptions"
+        [legend]="barChartLegend"
+        [chartType]="barChartType">
+    </canvas>
+</div>
+<div class="chart-wrapper">
+    <h3>Total Coronavirus Cases in {{country}}</h3>
+    <canvas baseChart 
+        [datasets]="lineChartData" 
+        [labels]="lineChartLabels"
+        [options]="lineChartOptions"
+        [legend]="lineChartLegend" 
+        [chartType]="lineChartType">
+    </canvas>
+</div>

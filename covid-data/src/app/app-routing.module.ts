@@ -1,11 +1,11 @@
 import { NgModule } from '@angular/core';
 import { Routes, RouterModule } from '@angular/router';
-import { HomeComponent } from './home/home.component';
-import { CountriesComponent } from './countries/countries.component';
+import { WorldComponent } from './world/world.component';
+import { CountryComponent } from './country/country.component';
 
 const routes: Routes = [
-    { path: "", component: HomeComponent},
-    { path: "countries/:country", component: CountriesComponent},
+    { path: "", component: WorldComponent},
+    { path: "country/:country", component: CountryComponent},
     { path: "**", redirectTo: "signin"},
 ];
 

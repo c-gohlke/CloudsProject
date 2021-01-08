@@ -6,16 +6,24 @@ import { AngularFireModule } from '@angular/fire';
 import { AngularFirestoreModule } from '@angular/fire/firestore';
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
-import { HomeComponent } from './home/home.component';
+import { WorldComponent } from './world/world.component';
 import { HttpClientModule } from '@angular/common/http';
 import { environment } from 'src/environments/environment';
-import { CountriesComponent } from './countries/countries.component';
+import { CountryComponent } from './country/country.component';
+import { WorldLiveComponent } from './world/world-live/world-live.component';
+import { WorldEvolutionComponent } from './world/world-evolution/world-evolution.component';
+import { CountryLiveComponent } from './country/country-live/country-live.component';
+import { CountryEvolutionComponent } from './country/country-evolution/country-evolution.component';
 
 @NgModule({
   declarations: [
     AppComponent,
-    HomeComponent,
-    CountriesComponent
+    WorldComponent,
+    CountryComponent,
+    WorldLiveComponent,
+    WorldEvolutionComponent,
+    CountryLiveComponent,
+    CountryEvolutionComponent
   ],
   imports: [
     BrowserModule,

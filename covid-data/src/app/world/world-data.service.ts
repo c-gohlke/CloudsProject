@@ -181,4 +181,108 @@ export class worldDataService {
     "28", "29", "30", "31"][date.getDate()
     ];
   }
+
+  getDaysArray(start:Date, end: Date): Array<Date> {
+    for(var arr=[],dt=new Date(start); dt<=end; dt.setDate(dt.getDate()+1)){
+        arr.push(new Date(dt));
+    }
+    return arr;
+  };
+
+  async updateFirebaseLiveData(): Promise<void>{
+    return this.checkLiveData().then((updateBool: boolean)=>{
+      console.log("checkLiveData updateBool is " + updateBool);
+      if (updateBool) {
+        console.log("updating live data");
+  
+        return this.getLiveData().then((res: any) => {
+          let tConfirmed: number = res["Global"]["TotalConfirmed"];
+          let tDeaths: number = res["Global"]["TotalDeaths"];
+          let tRecovered: number = res["Global"]["TotalRecovered"];
+  
+          let newData: CovidData = {
+            activeConfirmed: tConfirmed - tDeaths - tRecovered,
+            newConfirmed: res["Global"]["NewConfirmed"],
+            deathRate: tDeaths / tConfirmed,
+            lastUpdated: new Date(),
+            newDeaths: res["Global"]["NewDeaths"],
+            newRecovered: res["Global"]["NewRecovered"],
+            recoveryRate: tRecovered / tConfirmed,
+            totalConfirmed: tConfirmed,
+            totalDeaths: tDeaths,
+            totalRecovered: tRecovered
+          };
+          return this.updateLiveData(newData).then(()=>{
+            console.log("live data updated");
+          })
+        });
+      }
+      else {
+        console.log("not updating live data");
+        return;
+      }
+    })
+  }
+
+  loadSinceData(since: Date, untill: Date){
+    return this.loadTotalDataFor(this.getDaysArray(since, untill));
+  }
+
+  async loadTotalDataFor(dateArray: Array<Date>): Promise<Object>{
+    return this.loadGlobalDailyDataRange(dateArray).then((dailyDataArray)=>{
+    
+      let totalConfirmedArray: number[] = new Array();
+      let totalRecoveredArray: number[] = new Array();
+      let totalDeathsArray: number[] = new Array();
+
+      for (let doc of dailyDataArray){
+        totalConfirmedArray.push(doc.get("totalConfirmed"));
+        totalRecoveredArray.push(doc.get("totalRecovered"));
+        totalDeathsArray.push(doc.get("totalDeaths"));
+      }
+
+      return {
+        totalConfirmed: totalConfirmedArray,
+        totalRecovered: totalRecoveredArray,
+        totalDeaths: totalDeathsArray,
+      };
+    })
+  }
+
+  async updateFirebaseDailyData(since: Date){
+    let dateArray = this.getDaysArray(since, new Date());
+    return this.checkGlobalDailyData(since).then((updateBool: boolean)=>{
+      console.log("checkGlobalDailyData updateBool is " + updateBool);
+      if (updateBool) {
+        console.log("updating daily data");
+        return this.getGlobalDailyDataRange(since, new Date()).then((array) => {
+          let totalConfirmed: any[] = [];
+          let totalRecovered: any[] = [];
+          let totalDeaths: any[] = [];
+          array.forEach((dataElem: { TotalConfirmed: any; TotalRecovered: any; TotalDeaths: any; }) => {
+            totalConfirmed.push(dataElem.TotalConfirmed);
+            totalRecovered.push(dataElem.TotalRecovered);
+            totalDeaths.push(dataElem.TotalDeaths);
+          });
+          totalConfirmed = totalConfirmed.sort((a, b) => a - b);
+          totalRecovered = totalRecovered.sort((a_1, b_1) => a_1 - b_1);
+          totalDeaths = totalDeaths.sort((a_2, b_2) => a_2 - b_2);
+  
+          for (let index of Array.from(Array(array.length).keys())) {
+            this.updateGlobalDailyData(
+              totalConfirmed[index],
+              totalRecovered[index],
+              totalDeaths[index],
+              dateArray[index]
+            );
+          }
+          return;
+        });
+      }
+      else {
+        console.log("not updating daily data");
+        return;
+      }
+    })
+  }
 }
