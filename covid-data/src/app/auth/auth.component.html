@@ -1,0 +1,9 @@
+<ul class="navbar-nav mr-auto">
+    <li class="nav-item displayname">{{userService.getUser()?.displayName}}</li>
+    <li class="nav-item"  *ngIf="userService.userSignedIn() == false">
+        <button class="btn btn-info justify-content-end"(click)="userService.signInWithGoogle()">Sign in with Google</button>
+    </li>
+    <li class="nav-item" *ngIf="userService.userSignedIn() == true">
+        <button class="btn btn-info justify-content-end" (click)="userService.signOut()">Logout</button>
+    </li>
+</ul>

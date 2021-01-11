@@ -33,13 +33,14 @@ export class countryListService {
     return this.httpClient.get("https://api.covid19api.com/countries", httpOptions)
     }
 
-    updateCountriesList(countryList: string[]){
+    async updateCountriesList(countryList: string[]): Promise<void>{
         this.firestore.collection("countries").doc("countryList").set({slugs: countryList}, {merge: true})
         this.firestore.collection("countries").doc("countryList").set({lastUpdated: new Date()}, {merge: true})
+        return
     }
 
     async loadCountriesList(){
         const doc = await this.firestore.collection("countries").doc("countryList").get().toPromise();
-        return doc.get("countryList");
+        return doc.get("slugs");
     }    
 }

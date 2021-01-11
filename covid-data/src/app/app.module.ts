@@ -14,6 +14,19 @@ import { WorldLiveComponent } from './world/world-live/world-live.component';
 import { WorldEvolutionComponent } from './world/world-evolution/world-evolution.component';
 import { CountryLiveComponent } from './country/country-live/country-live.component';
 import { CountryEvolutionComponent } from './country/country-evolution/country-evolution.component';
+import { NewsComponent } from './world/news/news.component';
+import { AddNewsComponent } from './world/news/add-news.component';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
+import { HeaderComponent } from './header/header.component';
+import { FooterComponent } from './footer/footer.component';
+import { CountryNewsComponent } from './country/country-news/country-news.component';
+import {MatToolbarModule} from '@angular/material/toolbar';
+import { AuthComponent } from './auth/auth.component';
+import { CountryTableComponent } from './world/country-table/country-table.component';
+import { MatSortModule } from '@angular/material/sort';
+import { MatTableModule } from '@angular/material/table';
 
 @NgModule({
   declarations: [
@@ -23,7 +36,14 @@ import { CountryEvolutionComponent } from './country/country-evolution/country-e
     WorldLiveComponent,
     WorldEvolutionComponent,
     CountryLiveComponent,
-    CountryEvolutionComponent
+    CountryEvolutionComponent,
+    CountryNewsComponent,
+    CountryTableComponent,
+    NewsComponent,
+    AddNewsComponent,
+    HeaderComponent,
+    FooterComponent,
+    AuthComponent
   ],
   imports: [
     BrowserModule,
@@ -33,6 +53,12 @@ import { CountryEvolutionComponent } from './country/country-evolution/country-e
     ChartsModule,
     FormsModule,
     HttpClientModule,
+    MatFormFieldModule,
+    MatInputModule,
+    BrowserAnimationsModule,
+    MatToolbarModule,
+    MatSortModule,
+    MatTableModule
   ],
   providers: [],
   bootstrap: [AppComponent]

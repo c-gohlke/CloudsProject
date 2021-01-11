@@ -1,5 +1,5 @@
 import { Component, OnInit } from '@angular/core';
-import { countryDataService } from '../country-data.service';
+import { countryDataService } from '../../services/country-data.service';
 import { ChartOptions, ChartType, ChartDataSets } from 'chart.js';
 import { Label } from 'ng2-charts';
 import { ActivatedRoute } from '@angular/router';
@@ -48,7 +48,6 @@ export class CountryEvolutionComponent implements OnInit {
           this.countryDataService.loadSinceCountryData(this.country, daysago8, today).then((data: any)=>{
     
             console.log("Weekly data loaded");
-            console.log(data)
 
             let newDeaths = new Array(7)
             let newRecovered = new Array(7)
@@ -88,7 +87,6 @@ export class CountryEvolutionComponent implements OnInit {
             }
             this.lineChartLabels = labels;
           })
-    
         })
 	}
 }

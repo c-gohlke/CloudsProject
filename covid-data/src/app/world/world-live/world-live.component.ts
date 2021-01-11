@@ -1,5 +1,6 @@
 import { Component, OnInit } from '@angular/core';
-import { worldDataService } from '../world-data.service';
+import { worldDataService } from '../../services/world-data.service';
+import { LiveData } from '../../models/live-data.model';
 import { Label } from 'ng2-charts';
 import { ChartOptions, ChartType } from 'chart.js';
 
@@ -9,7 +10,7 @@ import { ChartOptions, ChartType } from 'chart.js';
     styleUrls: ['./world-live.component.css']
 })
 export class WorldLiveComponent implements OnInit {
-    todayData: any = new Object();
+    liveData: LiveData = new LiveData();
 
     public pieChartOptions: ChartOptions = {
         responsive: true,
@@ -37,7 +38,7 @@ export class WorldLiveComponent implements OnInit {
                 ],
               }];
       
-              this.todayData = {
+              this.liveData = {
                 activeConfirmed: liveData.get("activeConfirmed"),
                 deathRate: (liveData.get("deathRate")*100).toFixed(2) + "%",
                 lastUpdated: liveData.get("lastUpdated"),
@@ -49,9 +50,7 @@ export class WorldLiveComponent implements OnInit {
                 totalDeaths: liveData.get("totalDeaths"),
                 totalRecovered: liveData.get("totalRecovered")
               };
-
             });
-
         });
     }
 }

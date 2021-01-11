@@ -1,5 +1,5 @@
 import { Component, OnInit } from '@angular/core';
-import { worldDataService } from '../world-data.service';
+import { worldDataService } from '../../services/world-data.service';
 import { ChartOptions, ChartType, ChartDataSets } from 'chart.js';
 import { Label } from 'ng2-charts';
 

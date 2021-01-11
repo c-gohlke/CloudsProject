@@ -1,5 +1,5 @@
 import { Component, OnInit } from '@angular/core';
-import { countryDataService } from '../country-data.service';
+import { countryDataService } from '../../services/country-data.service';
 import { ChartOptions, ChartType, ChartDataSets } from 'chart.js';
 import { Label } from 'ng2-charts';
 import { ActivatedRoute } from '@angular/router';
@@ -56,6 +56,5 @@ export class CountryLiveComponent implements OnInit {
       
             });
         });
-		
 	}
 }

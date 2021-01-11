@@ -12,7 +12,7 @@ import { HttpClient } from '@angular/common/http';
 })
 
 export class userService {
-  private user: User | undefined | null;
+  public user: User | undefined | null;
   constructor(
     private afAuth: AngularFireAuth,
     private router: Router,
@@ -27,9 +27,7 @@ export class userService {
       email: credentials.user?.email
     };
     localStorage.setItem("user", JSON.stringify(this.user));
-
     this.updateUserData()
-    this.router.navigate(["covid-data"]);
   }
 
   private updateUserData(): void{
@@ -55,6 +53,11 @@ export class userService {
     this.afAuth.signOut();
     localStorage.removeItem("user");
     this.user = null;
-    this.router.navigate(["signin"]);
+  }
+
+  addNewsAuthorized(): boolean{
+    let user: User|null|undefined = JSON.parse(localStorage.getItem("user")||'{}');
+
+    return ["clement.gohlke@gmail.com"].includes(user?.email!);
   }
 }
