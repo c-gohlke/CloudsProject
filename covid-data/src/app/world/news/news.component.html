@@ -1,25 +1,28 @@
-<div class="my-3 d-flex justify-content-center">
-    <table classs="table table-bordered table-striped">
-        <thead>
-            <tr>
-                <th>
-                    Date
-                </th>
-                <th>
-                    Description
-                </th>
-                <th>
-                    User
-                </th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr *ngFor="let news of newsList">
-                <td>{{ news.date?.toDate() | date}}</td>
-                <td>{{ news.description }}</td>
-                <td>{{ news.user }}</td>
-            </tr>
-        </tbody>
-    </table>
+<div style="width:80%; margin: auto">
+    <h3>World News</h3>
+    <div class="my-3 d-flex justify-content-center">
+        <table class="table table-bordered table-striped">
+            <thead>
+                <tr>
+                    <th>
+                        Date
+                    </th>
+                    <th>
+                        Description
+                    </th>
+                    <th>
+                        User
+                    </th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr *ngFor="let news of newsList">
+                    <td>{{ news.date?.toDate() | date}}</td>
+                    <td>{{ news.description }}</td>
+                    <td>{{ news.user }}</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    <app-add-news></app-add-news>
 </div>
-<app-add-news></app-add-news>

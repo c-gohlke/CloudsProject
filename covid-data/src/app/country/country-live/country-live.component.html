@@ -5,43 +5,43 @@
         <tbody>
             <tr class="ROW_YELLOW">
                 <td>Total Cases</td>
-                <td>{{ todayData.totalConfirmed! }}</td>
+                <td>{{ liveData.totalConfirmed! }}</td>
             </tr>
             <tr class=ROW_YELLOW>
                 <td>New Cases</td>
-                <td>{{ todayData.newConfirmed! }}</td>
+                <td>{{ liveData.newConfirmed! }}</td>
             </tr>
             <tr class=ROW_YELLOW>
                 <td>Active Cases</td>
-                <td>{{ todayData.activeConfirmed! }}</td>
+                <td>{{ liveData.activeConfirmed! }}</td>
             </tr>
             <tr class=ROW_BLUE>
                 <td>Total Recovered</td>
-                <td>{{ todayData.totalRecovered! }}</td>
+                <td>{{ liveData.totalRecovered! }}</td>
             </tr>
             <tr class=ROW_BLUE>
                 <td>New Recovered</td>
-                <td>{{ todayData.newRecovered! }}</td>
+                <td>{{ liveData.newRecovered! }}</td>
             </tr>
             <tr class=ROW_BLUE>
                 <td>Recovery Rate</td>
-                <td>{{ todayData.recoveryRate! }}</td>
+                <td>{{deathRateString!}}</td>
             </tr>
             <tr class=ROW_RED>
                 <td>Total Deaths</td>
-                <td>{{ todayData.totalDeaths! }}</td>
+                <td>{{ liveData.totalDeaths! }}</td>
             </tr>
             <tr class=ROW_RED>
                 <td>New Deaths</td>
-                <td>{{ todayData.newDeaths! }}</td>
+                <td>{{ liveData.newDeaths! }}</td>
             </tr>
             <tr class=ROW_RED>
                 <td>Death Rate</td>
-                <td>{{ todayData.deathRate! }}</td>
+                <td>{{deathRateString!}}</td>
             </tr>
         </tbody>
     </table>
-    <p class="font-italic">Last Updated: {{ todayData.lastUpdated?.toDate() | date }}</p>
+    <p class="font-italic">Last Updated: {{ liveData.lastUpdated! }}</p>
 </div>
 <div class="chart-wrapper">
     <h3>Coronavirus Cases Distribution in {{country}}</h3>

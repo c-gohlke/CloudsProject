@@ -1,174 +1,174 @@
 import { Injectable } from '@angular/core';
 import { AngularFirestore } from '@angular/fire/firestore';
-import { CovidData } from '../models/covid-data.model';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { Observable } from "rxjs";
+import { DailyCountryData } from '../models/daily-country-data.model';
+import { LiveData } from '../models/live-data.model';
 
 @Injectable({
   providedIn: 'root'
 })
-
 export class worldDataService {
-  constructor(
-    public firestore: AngularFirestore,
-    public httpClient: HttpClient){}
+  	constructor(
+		public firestore: AngularFirestore,
+		public httpClient: HttpClient
+	){}
 
-  async checkLiveData(): Promise<boolean>{
-    return this.firestore.collection("daily_data").doc("live").get().toPromise().then((doc: any)=>{
-      if(doc){
-        if(!doc.get("lastUpdated")){
-          return true;
-        }
-        // if lastUpdate happened more than a day ago, fetch new data
-        else if(new Date().getTime() - doc.get("lastUpdated").toDate().getTime()>1000*3600*24){
-          return true;
-        }
-        else{
-          return false
-        }
-      }
-      else{
-        return true;
-      }
-    });
-  }
+  	async loadLiveData(country: string = "world"): Promise<any>{
+		let res: any = await this.firestore.collection("live_data").doc("live").collection("countries").doc(country).get().toPromise()
+		if(res.get("lastUpdated") && new Date().getTime() - res.get("lastUpdated").toDate().getTime()<1000*3600*24){
+			console.log("not updating live data");
+			let liveCountryData: LiveData = res.data();
+			liveCountryData.lastUpdated = res.get("lastUpdated").toDate();
+			return liveCountryData
+		} else {
+			console.log("updating live data for country " + country);
+			const httpOptions = {
+				headers: new HttpHeaders({ "Content-Type": "application/json"})
+			};
+			let summaryData: any = await this.httpClient.get("https://api.covid19api.com/summary", httpOptions).toPromise();
+			let tWorldConfirmed: number = summaryData["Global"]["TotalConfirmed"];
+			let tWorldDeaths: number = summaryData["Global"]["TotalDeaths"];
+			let tWorldRecovered: number = summaryData["Global"]["TotalRecovered"];
 
-  getLiveData(){
-    const httpOptions = {
-      headers: new HttpHeaders({ "Content-Type": "application/json"})
-    };
-    return this.httpClient.get("https://api.covid19api.com/summary", httpOptions).toPromise()
-  }
+			let liveWorldData: LiveData = {
+				activeConfirmed: tWorldConfirmed - tWorldDeaths - tWorldRecovered,
+				newConfirmed: summaryData["Global"]["NewConfirmed"],
+				deathRate: tWorldDeaths / tWorldConfirmed,
+				lastUpdated: new Date(),
+				newDeaths: summaryData["Global"]["NewDeaths"],
+				newRecovered: summaryData["Global"]["NewRecovered"],
+				recoveryRate: tWorldRecovered / tWorldConfirmed,
+				totalConfirmed: tWorldConfirmed,
+				totalDeaths: tWorldDeaths,
+				totalRecovered: tWorldRecovered
+			};
+			this.firestore.collection("live_data").doc("live").collection("countries").doc(country).set(liveWorldData, {merge: true});
+			// localStorage.setItem("daily-live-data", JSON.stringify(liveData));
+			
+			let promptCountryLiveData: LiveData|undefined;
+			if(country === "world"){
+				promptCountryLiveData = liveWorldData;
+			}
 
-  updateLiveData(newData: CovidData): Promise<void>{
-    return this.firestore.collection("daily_data").doc("live").set({
-      activeConfirmed: newData.activeConfirmed,
-      deathRate: newData.deathRate,
-      lastUpdated: newData.lastUpdated,
-      newConfirmed: newData.newConfirmed,
-      newDeaths: newData.newDeaths,
-      newRecovered: newData.newRecovered,
-      recoveryRate: newData.recoveryRate,
-      totalConfirmed: newData.totalConfirmed,
-      totalDeaths: newData.totalDeaths,
-      totalRecovered: newData.totalRecovered,      
-    }, {merge: true})
-  }
+			for (let cDetails of summaryData["Countries"]){
+				let tConfirmed: number = cDetails["TotalConfirmed"];
+				let tDeaths: number = cDetails["TotalDeaths"];
+				let tRecovered: number = cDetails["TotalRecovered"];
+				let countryData: LiveData = {
+					activeConfirmed: tConfirmed - tDeaths - tRecovered,
+					newConfirmed: cDetails["NewConfirmed"],
+					deathRate: tDeaths / tConfirmed,
+					lastUpdated: new Date(),
+					newDeaths: cDetails["NewDeaths"],
+					newRecovered: cDetails["NewRecovered"],
+					recoveryRate: tRecovered / tConfirmed,
+					totalConfirmed: tConfirmed,
+					totalDeaths: tDeaths,
+					totalRecovered: tRecovered
+				};
+				await this.firestore.collection("live_data").doc("live").collection("countries").doc(cDetails.Slug).set(countryData, {merge: true});
+				// localStorage.setItem("daily-live-data", JSON.stringify(liveData));
+				if(cDetails.Slug === country){
+					promptCountryLiveData = countryData;
+				}
+			}
+			return promptCountryLiveData
+		}
+	}
+	  
+	async loadDailyData(dateArray: Array<Date>): Promise<any>{
+		let dailyDataDocArray: Array<any> = [];
+		let lastUpdated: number = Date.now();
 
-  async loadLiveData(): Promise<any>{
-    return this.firestore.collection("daily_data").doc("live").get().toPromise()
-  }
+		for (const date of dateArray) {
+			dailyDataDocArray.push(await this.firestore.collection("daily_data").doc(this.toDateString(date))
+			.collection("countries").doc("world").get().toPromise())
+		}
+		//find way to load in parallel
 
-  checkGlobalDailyData(date: Date): Promise<boolean>{
-    return this.firestore.collection("daily_data").doc(this.toDateString(date)).get().toPromise().then((covidData: any)=>{
-      if (covidData) {
-        if (!covidData.get("lastUpdated")) {
-          return true;
-        }
+		dailyDataDocArray.forEach(dailyDataDoc =>{
+			if(dailyDataDoc.get("lastUpdated") && lastUpdated > dailyDataDoc.get("lastUpdated").toDate().getTime()){
+				lastUpdated = dailyDataDoc.get("lastUpdated").toDate().getTime()
+			}
+		})
+		
+		if(lastUpdated && new Date().getTime() - lastUpdated<1000*3600*24){
+			console.log("not updating world daily data")
 
-        // if lastUpdate happened more than a day ago, fetch new data
-        else if (new Date().getTime() - covidData.get("lastUpdated").toDate().getTime() > 1000 * 3600 * 24) {
-          return true;
-        }
-        else {
-          return false;
-        }
-      }
-      else {
-        return true;
-      }
-    })
-  }
+			let totalConfirmedArray: number[] = new Array();
+			let totalRecoveredArray: number[] = new Array();
+			let totalDeathsArray: number[] = new Array();
+			let dateStringArray: string[] = new Array();
 
+			for (let dataDoc of dailyDataDocArray){
+				totalConfirmedArray.push(dataDoc.get("totalConfirmed"));
+				totalRecoveredArray.push(dataDoc.get("totalRecovered"));
+				totalDeathsArray.push(dataDoc.get("totalDeaths"));
+			}
+			totalConfirmedArray = totalConfirmedArray.sort((a, b) => a - b);
+			totalRecoveredArray = totalRecoveredArray.sort((a_1, b_1) => a_1 - b_1);
+			totalDeathsArray = totalDeathsArray.sort((a_2, b_2) => a_2 - b_2);
 
-  getGlobalDailyData(date: Date): Observable<Object>{
-    const httpOptions = {
-      headers: new HttpHeaders({ "Content-Type": "application/json"})
-    };
-    let tomorrow = new Date(date)
-    tomorrow.setDate(tomorrow.getDate() + 1)
-    let api_url: string = "https://api.covid19api.com/world?from=" + this.toDateString(date) + "T00:00:00Z&to=" +
-    this.toDateString(tomorrow) + "T00:00:00Z"
-    return this.httpClient.get(api_url, httpOptions)   
-  }
+			for (let index of Array.from(Array(totalConfirmedArray.length).keys())) {
+				let dateString: string = this.toDateString(dateArray[index]);
+				dateStringArray.push(dateString)
+			}
+			return {
+				dates: dateStringArray,
+				totalConfirmed: totalConfirmedArray,
+				totalRecovered: totalRecoveredArray,
+				totalDeaths: totalDeathsArray,
+			};
+		} else {
+			console.log("updating world daily data")
+			const httpOptions = {
+				headers: new HttpHeaders({ "Content-Type": "application/json"})
+			};
+		
+			let api_url: string = "https://api.covid19api.com/world?from=" + this.toDateString(dateArray[0]) + "T00:00:00Z&to=" +
+			this.toDateString(dateArray[dateArray.length-1]) + "T00:00:00Z"
+			let dailyDataArray: any = await this.httpClient.get(api_url, httpOptions).toPromise()
 
-  updateGlobalDailyData(
-    totalConfirmed: number,
-    totalRecovered: number,
-    totalDeaths: number,
-    date: Date): Promise<void>{
-    return this.firestore.collection("daily_data").doc(this.toDateString(date)).set(
-      {
-        id: this.toDateString(date),
-        totalConfirmed: totalConfirmed,
-        totalRecovered: totalRecovered,
-        totalDeaths: totalDeaths,
-        lastUpdated: new Date()
-      },
-      {
-        merge: true
-      }
-    );
-  }
+			console.log("got daily data array from API")
 
-  loadGlobalDailyData(date: Date): Promise<any>{
-    return this.firestore.collection("daily_data").doc(this.toDateString(date)).get().toPromise();
-  }
+			let totalConfirmedArray: number[] = new Array();
+			let totalRecoveredArray: number[] = new Array();
+			let totalDeathsArray: number[] = new Array();
+			let datesArray: string[] = new Array();
 
-  async loadGlobalDailyDataRange(dateArray: Array<Date>): Promise<any>{
-    let docRef = (this.firestore.collection("daily_data").ref);
+			for (let dailyData of dailyDataArray){
+				totalConfirmedArray.push(dailyData["TotalConfirmed"]);
+				totalRecoveredArray.push(dailyData["TotalRecovered"]);
+				totalDeathsArray.push(dailyData["TotalDeaths"]);
+			}
+			totalConfirmedArray = totalConfirmedArray.sort((a, b) => a - b);
+			totalRecoveredArray = totalRecoveredArray.sort((a_1, b_1) => a_1 - b_1);
+			totalDeathsArray = totalDeathsArray.sort((a_2, b_2) => a_2 - b_2);
 
-    let validIDs: Array<String> = new Array()
-    for (let date of dateArray){
-      validIDs.push(this.toDateString(date))
-    }
+			for (let index of Array.from(Array(totalConfirmedArray.length).keys())) {
+				let dateString: string = this.toDateString(dateArray[index]);
+				datesArray.push(dateString)
 
-    return docRef.get().then((collection: any)=>{
-      let validDocs: Array<any> = new Array();
+				let worldDailyData: DailyCountryData = {
+					id: dateString,
+					totalConfirmed: totalConfirmedArray[index],
+					totalRecovered: totalRecoveredArray[index],
+					totalDeaths: totalDeathsArray[index],
+					lastUpdated: new Date()
+				}
+				await this.firestore.collection("daily_data").doc(dateString).collection("countries").doc("world")
+				.set(worldDailyData,{merge: true});
+				// localStorage.setItem("daily-data-"+this.toDateString(dateArray[index]), JSON.stringify(worldDailyData))
+			}
+			return {
+				dates: datesArray,
+				totalConfirmed: totalConfirmedArray,
+				totalRecovered: totalRecoveredArray,
+				totalDeaths: totalDeathsArray,
+			};
+		}
+	}
 
-      collection.docs.map((doc: any) => {
-        if(validIDs.includes(doc.get("id"))){
-          validDocs.push(doc)
-        }
-      })
-      return validDocs
-    });
-  }
-
-  checkGlobalDailyDataRange(startDate: Date, endDate: Date): Promise<boolean>{
-    return this.firestore.collection("daily_data").doc(this.toDateString(startDate)).get().toPromise().then((doc)=>{
-      if(!doc.get("lastUpdated")){
-        return true;
-      }
-      // if lastUpdate happened more than a day ago, fetch new data
-      else if(new Date().getTime() - doc.get("lastUpdated").toDate().getTime()>1000*3600*24){
-        return true;
-      }
-      else{
-        return false
-      }
-    }) //TODO: improve check
-  }
-
-  getGlobalDailyDataRange(startDate: Date, endDate: Date): Promise<any>{
-    const httpOptions = {
-      headers: new HttpHeaders({ "Content-Type": "application/json"})
-    };
-
-    let api_url: string = "https://api.covid19api.com/world?from=" + this.toDateString(startDate) + "T00:00:00Z&to=" +
-    this.toDateString(endDate) + "T00:00:00Z"
-    return this.httpClient.get(api_url, httpOptions).toPromise()
-  }
-
-  getGlobalDailyDataRangeTest(startDate: Date, endDate: Date): Promise<Object>{
-    const httpOptions = {
-      headers: new HttpHeaders({ "Content-Type": "application/json"})
-    };
-
-    let api_url: string = "https://api.covid19api.com/world?from=" + this.toDateString(startDate) + "T00:00:00Z&to=" +
-    this.toDateString(endDate) + "T00:00:00Z"
-    return this.httpClient.get(api_url, httpOptions).toPromise()
-  }
 
   toDateString(date: Date): string{
     return date.getFullYear() + "-" + 
@@ -188,101 +188,4 @@ export class worldDataService {
     }
     return arr;
   };
-
-  async updateFirebaseLiveData(): Promise<void>{
-    return this.checkLiveData().then((updateBool: boolean)=>{
-      console.log("checkLiveData updateBool is " + updateBool);
-      if (updateBool) {
-        console.log("updating live data");
-  
-        return this.getLiveData().then((res: any) => {
-          let tConfirmed: number = res["Global"]["TotalConfirmed"];
-          let tDeaths: number = res["Global"]["TotalDeaths"];
-          let tRecovered: number = res["Global"]["TotalRecovered"];
-  
-          let newData: CovidData = {
-            activeConfirmed: tConfirmed - tDeaths - tRecovered,
-            newConfirmed: res["Global"]["NewConfirmed"],
-            deathRate: tDeaths / tConfirmed,
-            lastUpdated: new Date(),
-            newDeaths: res["Global"]["NewDeaths"],
-            newRecovered: res["Global"]["NewRecovered"],
-            recoveryRate: tRecovered / tConfirmed,
-            totalConfirmed: tConfirmed,
-            totalDeaths: tDeaths,
-            totalRecovered: tRecovered
-          };
-          return this.updateLiveData(newData).then(()=>{
-            console.log("live data updated");
-          })
-        });
-      }
-      else {
-        console.log("not updating live data");
-        return;
-      }
-    })
-  }
-
-  loadSinceData(since: Date, untill: Date){
-    return this.loadTotalDataFor(this.getDaysArray(since, untill));
-  }
-
-  async loadTotalDataFor(dateArray: Array<Date>): Promise<Object>{
-    return this.loadGlobalDailyDataRange(dateArray).then((dailyDataArray)=>{
-    
-      let totalConfirmedArray: number[] = new Array();
-      let totalRecoveredArray: number[] = new Array();
-      let totalDeathsArray: number[] = new Array();
-
-      for (let doc of dailyDataArray){
-        totalConfirmedArray.push(doc.get("totalConfirmed"));
-        totalRecoveredArray.push(doc.get("totalRecovered"));
-        totalDeathsArray.push(doc.get("totalDeaths"));
-      }
-
-      return {
-        totalConfirmed: totalConfirmedArray,
-        totalRecovered: totalRecoveredArray,
-        totalDeaths: totalDeathsArray,
-      };
-    })
-  }
-
-  async updateFirebaseDailyData(since: Date){
-    let dateArray = this.getDaysArray(since, new Date());
-    return this.checkGlobalDailyData(since).then((updateBool: boolean)=>{
-      console.log("checkGlobalDailyData updateBool is " + updateBool);
-      if (updateBool) {
-        console.log("updating daily data");
-        return this.getGlobalDailyDataRange(since, new Date()).then((array) => {
-          let totalConfirmed: any[] = [];
-          let totalRecovered: any[] = [];
-          let totalDeaths: any[] = [];
-          array.forEach((dataElem: { TotalConfirmed: any; TotalRecovered: any; TotalDeaths: any; }) => {
-            totalConfirmed.push(dataElem.TotalConfirmed);
-            totalRecovered.push(dataElem.TotalRecovered);
-            totalDeaths.push(dataElem.TotalDeaths);
-          });
-          totalConfirmed = totalConfirmed.sort((a, b) => a - b);
-          totalRecovered = totalRecovered.sort((a_1, b_1) => a_1 - b_1);
-          totalDeaths = totalDeaths.sort((a_2, b_2) => a_2 - b_2);
-  
-          for (let index of Array.from(Array(array.length).keys())) {
-            this.updateGlobalDailyData(
-              totalConfirmed[index],
-              totalRecovered[index],
-              totalDeaths[index],
-              dateArray[index]
-            );
-          }
-          return;
-        });
-      }
-      else {
-        console.log("not updating daily data");
-        return;
-      }
-    })
-  }
 }

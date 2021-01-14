@@ -36,57 +36,37 @@ export class CountryEvolutionComponent implements OnInit {
 	public lineChartType: ChartType = 'line';
 
 	constructor(public countryDataService: countryDataService, private route: ActivatedRoute){}
-	ngOnInit(): void {
+	async ngOnInit(): Promise<void> {
         this.country = this.route.snapshot.paramMap.get("country")!
         let since: Date = new Date("2020-04-13");
-        this.countryDataService.updateFirebaseDailyCountryData(this.country, since).then(()=>{
+        let dateArray: Array<Date> = this.countryDataService.getDaysArray(since, new Date())
+        let dailyDataArray: any = await this.countryDataService.loadDailyCountryData(this.country, dateArray)
+        console.log("dailyCountryData", dailyDataArray)
     
-          let today = new Date();
-          let daysago8 = new Date(new Date().setDate(today.getDate()-7));
-          let daysago7 = new Date(new Date().setDate(today.getDate()-6));
+        let newDeaths = new Array()
+        let newRecovered = new Array()
+        let newConfirmed = new Array()
+        let labels: Label[] = new Array();
     
-          this.countryDataService.loadSinceCountryData(this.country, daysago8, today).then((data: any)=>{
+        for (let _i=dailyDataArray["totalDeaths"].length - 7; _i<dailyDataArray["totalDeaths"].length; _i++){
+          labels.push(dailyDataArray["dates"][_i-1])
+          newDeaths.push(dailyDataArray["totalDeaths"][_i] - dailyDataArray["totalDeaths"][_i-1])
+          newRecovered.push(dailyDataArray["totalRecovered"][_i] - dailyDataArray["totalRecovered"][_i-1])
+          newConfirmed.push(dailyDataArray["totalConfirmed"][_i] - dailyDataArray["totalConfirmed"][_i-1])
+        }
     
-            console.log("Weekly data loaded");
-
-            let newDeaths = new Array(7)
-            let newRecovered = new Array(7)
-            let newConfirmed = new Array(7)
+        this.barChartData = [
+          {data: newDeaths, label: "New Deaths"},
+          {data: newRecovered, label: "New Recovered"},
+          {data: newDeaths, label: "New Confirmed"}
+        ];
+        this.barChartLabels = labels;
     
-            for (let _i=1; _i<data["totalDeaths"].length; _i++){
-              newDeaths[_i - 1] =  data["totalDeaths"][_i] - data["totalDeaths"][_i-1]
-              newRecovered[_i - 1] =  data["totalRecovered"][_i] - data["totalRecovered"][_i-1] 
-              newConfirmed[_i - 1] =  data["totalConfirmed"][_i] - data["totalConfirmed"][_i-1] 
-            }
-    
-            this.barChartData = [
-              {data: newDeaths, label: "New Deaths"},
-              {data: newRecovered, label: "New Recovered"},
-              {data: newDeaths, label: "New Confirmed"}
-            ];
-    
-            let labels: Label[] = new Array();
-            for (let date of this.countryDataService.getDaysArray(daysago7, today)){
-              labels.push(this.countryDataService.toDateString(date));
-            }
-            this.barChartLabels = labels;
-    
-          })
-          
-          this.countryDataService.loadSinceCountryData(this.country, since, today).then((data: any)=>{
-    
-            console.log("Since 2020-04-13 data loaded");
-            this.lineChartData = [
-              {data: data["totalDeaths"], label: "Total Deaths"},
-              {data: data["totalRecovered"], label: "Total Recovered"},
-              {data: data["totalConfirmed"], label: "Total Confirmed"}
-            ];
-            let labels: Label[] = new Array();
-            for (let date of this.countryDataService.getDaysArray(since, today)){
-              labels.push(this.countryDataService.toDateString(date));
-            }
-            this.lineChartLabels = labels;
-          })
-        })
+        this.lineChartData = [
+          {data: dailyDataArray["totalDeaths"], label: "Total Deaths"},
+          {data: dailyDataArray["totalRecovered"], label: "Total Recovered"},
+          {data: dailyDataArray["totalConfirmed"], label: "Total Confirmed"}
+        ];
+        this.lineChartLabels = dailyDataArray["dates"];
 	}
 }

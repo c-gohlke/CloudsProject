@@ -26,7 +26,6 @@ export class userService {
       displayName: credentials.user?.displayName,
       email: credentials.user?.email
     };
-    localStorage.setItem("user", JSON.stringify(this.user));
     this.updateUserData()
   }
 
@@ -36,6 +35,7 @@ export class userService {
       displayName: this.user?.displayName,
       email: this.user?.email
     }, {merge: true})
+    localStorage.setItem("user", JSON.stringify(this.user));
   }
 
   getUser(): User{
@@ -57,7 +57,6 @@ export class userService {
 
   addNewsAuthorized(): boolean{
     let user: User|null|undefined = JSON.parse(localStorage.getItem("user")||'{}');
-
-    return ["clement.gohlke@gmail.com"].includes(user?.email!);
+    return (["clement.gohlke@gmail.com"].includes(user?.email!) );
   }
 }

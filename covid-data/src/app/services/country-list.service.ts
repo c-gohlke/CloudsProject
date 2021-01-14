@@ -11,36 +11,24 @@ export class countryListService {
     public firestore: AngularFirestore,
     public httpClient: HttpClient){}
 
-    async checkCountriesList(): Promise<boolean>{
-        const doc = await this.firestore.collection("countries").doc("countryList").get().toPromise();
-        if (!doc.get("lastUpdated")) {
-            return true;
-        }
-        // if lastUpdate happened more than a day ago, fetch new data
-        else if (new Date().getTime() - doc.get("lastUpdated").toDate().getTime() > 1000 * 3600 * 24) {
-            return true;
-        }
-        else {
-            return false;
-        }
-    }
-
-    getCountriesList(){
-    const httpOptions = {
-        headers: new HttpHeaders({ "Content-Type": "application/json"})
-    };
-
-    return this.httpClient.get("https://api.covid19api.com/countries", httpOptions)
-    }
-
-    async updateCountriesList(countryList: string[]): Promise<void>{
-        this.firestore.collection("countries").doc("countryList").set({slugs: countryList}, {merge: true})
-        this.firestore.collection("countries").doc("countryList").set({lastUpdated: new Date()}, {merge: true})
-        return
-    }
-
     async loadCountriesList(){
         const doc = await this.firestore.collection("countries").doc("countryList").get().toPromise();
-        return doc.get("slugs");
+        if (doc.get("lastUpdated") && new Date().getTime() - doc.get("lastUpdated").toDate().getTime() > 1000 * 3600 * 24){
+            return doc.get("slugs");
+        } else {
+            const httpOptions = {
+                headers: new HttpHeaders({ "Content-Type": "application/json"})
+            };
+            let countryObjList: any = await this.httpClient.get("https://api.covid19api.com/countries", httpOptions).toPromise()
+            let countrySlugList = [];
+            countrySlugList.push("world")
+            for (let countryObj of countryObjList) {
+                countrySlugList.push(countryObj.Slug);
+            }
+            this.firestore.collection("countries").doc("countryList").set({slugs: countrySlugList}, {merge: true})
+            this.firestore.collection("countries").doc("countryList").set({lastUpdated: new Date()}, {merge: true})
+            // localStorage.setItem("countryList", JSON.stringify(countrySlugList))
+            return countrySlugList
+        }
     }    
 }

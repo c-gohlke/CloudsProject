@@ -1,4 +1,5 @@
 <div *ngIf="userService.addNewsAuthorized() == true">
+    <h3>You are authorized to add news!</h3>
     <form (ngSubmit)="addNews()">
         <div class="row mb-3">
             <div class="col-md-6">

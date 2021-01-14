@@ -17,18 +17,10 @@ export class AddNewsComponent implements OnInit {
 
   constructor(private newsService: newsService, public countryListService: countryListService, public userService: userService) {}
   async ngOnInit(): Promise<void> {
-    this.updateCountriesList().then(async () => {
-      this.countries = await this.countryListService.loadCountriesList();
-      console.log(this.countries)
-    })
+    this.countries = await this.countryListService.loadCountriesList();
   }
 
   addNews(){
-    console.log("adding a news")
-    console.log(this.date)
-    console.log(this.description)
-    console.log(this.country)
-
     let news: News = {
       id: Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15),
       date: new Date(this.date),
@@ -43,23 +35,7 @@ export class AddNewsComponent implements OnInit {
     this.country = "world";
   };
 
-  async updateCountriesList(): Promise<void>{
-    this.countryListService.checkCountriesList().then((checkUpdateCountriesList: boolean) =>{
-      if(checkUpdateCountriesList){
-        this.countryListService.getCountriesList().subscribe(async (countryObjList: any) => {
-          let countrySlugList = [];
-          countrySlugList.push("world")
-          for (let countryObj of countryObjList) {
-            countrySlugList.push(countryObj.Slug);
-          }
-          return this.countryListService.updateCountriesList(countrySlugList);
-        });
-      }
-    });
-  }
-
   onSelectChange(selectedCountry: any){
-    console.log(selectedCountry)
     this.country = selectedCountry;  
   }
 }

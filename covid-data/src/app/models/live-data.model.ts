@@ -1,14 +1,14 @@
 export class LiveData{
-    activeConfirmed: string|undefined
-    deathRate: string|undefined; 
-    lastUpdated: any;
-    newConfirmed: string|undefined;
-    newDeaths: string|undefined;
-    newRecovered: string|undefined;
-    recoveryRate: string|undefined;
-    totalConfirmed: string|undefined;
-    totalDeaths: string|undefined;
-    totalRecovered: string|undefined;
+    activeConfirmed: number|undefined
+    deathRate: number|undefined; 
+    lastUpdated: Date|undefined;
+    newConfirmed: number|undefined;
+    newDeaths: number|undefined;
+    newRecovered: number|undefined;
+    recoveryRate: number|undefined;
+    totalConfirmed: number|undefined;
+    totalDeaths: number|undefined;
+    totalRecovered: number|undefined;
     constructor() {
     }
 }
