@@ -27,12 +27,15 @@ export class CountryTableComponent implements OnInit {
   async ngOnInit(): Promise<void> {
     this.countryList = await this.countryListService.loadCountriesList()
 
-    let problemList: any[] = ["ala-aland-islands", "tokelau", "northern-mariana-islands", "guernsey", "saint-helena", "cook-islands",
+    let problemList: any[] = ["world", "ala-aland-islands", "tokelau", "northern-mariana-islands", "guernsey", "saint-helena", "cook-islands",
     "pitcairn", "micronesia", "hong-kong-sar-china", "guadeloupe", "saint-pierre-and-miquelon", "kiribati", "saint-barthélemy", "tonga", "turkmenistan",
     "french-guiana", "french-southern-territories", "us-minor-outlying-islands", "mayotte", "gibraltar", "cayman-islands", "falkland-islands-malvinas",
     "puerto-rico", "american-samoa", "christmas-island", "faroe-islands", "anguila", "guam", "heard-and-mcdonald-islands", "aruba", "niue",
     "norfolk-island", "turks-and-caicos-islands", "bouvet-island", "saint-martin-french-part", "palau", "wallis-and-futuna-islands", "new-caledonia",
-    "british-virgin-islands", "greenland", "french-polynesia", "cocos-keeling-islands", "martinique", "nauru", "korea-north", "british-indian-ocean-territory"]
+    "british-virgin-islands", "greenland", "french-polynesia", "cocos-keeling-islands", "martinique", "nauru", "korea-north", "british-indian-ocean-territory",
+    "tuvalu", "netherlands-antilles", "isle-of-man", "antarctica", "anguilla", "virgin-islands", "jersey", "bermuda", "south-georgia-and-the-south-sandwich-islands",
+    "montserrat", "svalbard-and-jan-mayen-islands"
+  ]
 
     //some countries are in list of country slugs, but are not in Countries data array given by API
     for (let country of problemList){

@@ -18,6 +18,8 @@ export class AddNewsComponent implements OnInit {
   constructor(private newsService: newsService, public countryListService: countryListService, public userService: userService) {}
   async ngOnInit(): Promise<void> {
     this.countries = await this.countryListService.loadCountriesList();
+    this.countries!.sort();
+    this.countries!.unshift("world");
   }
 
   addNews(){

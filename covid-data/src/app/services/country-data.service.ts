@@ -68,8 +68,6 @@ export class countryDataService {
     
       let api_url: string = "https://api.covid19api.com/total/dayone/country/" + country
       let dailyDataArray: any = await this.httpClient.get(api_url, httpOptions).toPromise()
-      console.log("got daily data array from API")
-      console.log(dailyDataArray)
 
       let dateStringArray: string[] = new Array();
       let totalConfirmedArray: number[] = new Array();

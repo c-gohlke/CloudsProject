@@ -21,7 +21,6 @@ export class countryListService {
             };
             let countryObjList: any = await this.httpClient.get("https://api.covid19api.com/countries", httpOptions).toPromise()
             let countrySlugList = [];
-            countrySlugList.push("world")
             for (let countryObj of countryObjList) {
                 countrySlugList.push(countryObj.Slug);
             }
