@@ -10,6 +10,9 @@
         </canvas>
     </div>
     <div class="chart-wrapper mb-5">
+        <p>Note: the API for "https://api.covid19api.com/world/from" is currently broken (16.01.2021). The only other working API I could find 
+            for daily World data is "https://corona.lmao.ninja/v2/historical/all", but it only has data for the past ~35 days
+        </p>
         <h3>Total Coronavirus Cases Worldwide</h3>
         <canvas baseChart 
             [datasets]="lineChartData" 

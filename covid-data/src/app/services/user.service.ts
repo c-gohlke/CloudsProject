@@ -13,11 +13,16 @@ import { HttpClient } from '@angular/common/http';
 
 export class userService {
   public user: User | undefined | null;
+  emailList: String[]|undefined
   constructor(
     private afAuth: AngularFireAuth,
     private router: Router,
     public firestore: AngularFirestore,
-    public httpClient: HttpClient){}
+    public httpClient: HttpClient){
+      this.firestore.collection("users").doc("auth_list").get().toPromise().then((authList: any)=>{
+        this.emailList = authList.get("email_list")
+      });
+    }
 
   async signInWithGoogle(): Promise<void>{
     const credentials = await this.afAuth.signInWithPopup(new firebase.auth.GoogleAuthProvider());
@@ -57,6 +62,6 @@ export class userService {
 
   addNewsAuthorized(): boolean{
     let user: User|null|undefined = JSON.parse(localStorage.getItem("user")||'{}');
-    return (["clement.gohlke@gmail.com"].includes(user?.email!) );
+    return this.emailList?.includes((user?.email!))||false;
   }
 }

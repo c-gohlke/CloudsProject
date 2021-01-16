@@ -13,35 +13,19 @@ export class worldDataService {
 		public httpClient: HttpClient
 	){}
 
-  	async loadLiveData(countryList: string[]): Promise<any>{
-		return this.firestore.collection("live_data").doc("live").collection("countries").doc("world").get().toPromise().then((res: any)=>{
+  	async loadLiveData(country: string = "world"): Promise<any>{
+		return this.firestore.collection("live_data").doc("live").collection("countries").doc(country).get().toPromise().then((res: any)=>{
 			if(res.get("lastUpdated") && new Date().getTime() - res.get("lastUpdated").toDate().getTime()<1000*3600*24){
-				let countryInfo: any = new Object()
-				let liveWorldData: LiveData = res.data();
-				let promises: Array<Promise<any>> = [];
-				liveWorldData.lastUpdated = res.get("lastUpdated").toDate();
-				countryInfo["world"] = liveWorldData
-			
-				for (let country of countryList){
-					promises.push(this.firestore.collection("live_data").doc("live").collection("countries").doc(country).get().toPromise().then((res: any)=>{
-						if(res.data()){
-							let liveCountryData: LiveData = res.data();
-							liveCountryData.lastUpdated = res.get("lastUpdated").toDate();
-							countryInfo[country] = liveCountryData
-						}
-					}));
-				}
-				return Promise.all(promises).then(()=>{
-					return countryInfo
-				})
+				console.log("not updating live data");
+				let liveCountryData: LiveData = res.data();
+				liveCountryData.lastUpdated = res.get("lastUpdated").toDate();
+				return liveCountryData
 			} else {
-				console.log("live data not up to date");
+				console.log("updating live data for country " + country);
 				const httpOptions = {
 					headers: new HttpHeaders({ "Content-Type": "application/json"})
 				};
 				return this.httpClient.get("https://api.covid19api.com/summary", httpOptions).toPromise().then((summaryData: any)=>{
-					let countryInfo: any = new Object()
-
 					let tWorldConfirmed: number = summaryData["Global"]["TotalConfirmed"];
 					let tWorldDeaths: number = summaryData["Global"]["TotalDeaths"];
 					let tWorldRecovered: number = summaryData["Global"]["TotalRecovered"];
@@ -58,9 +42,14 @@ export class worldDataService {
 						totalDeaths: tWorldDeaths,
 						totalRecovered: tWorldRecovered
 					};
-
-					countryInfo["world"] = liveWorldData
-							
+					this.firestore.collection("live_data").doc("live").collection("countries").doc(country).set(liveWorldData, {merge: true});
+					// localStorage.setItem("daily-live-data", JSON.stringify(liveData));
+					
+					let promptCountryLiveData: LiveData|undefined;
+					if(country === "world"){
+						promptCountryLiveData = liveWorldData;
+					}
+		
 					for (let cDetails of summaryData["Countries"]){
 						let tConfirmed: number = cDetails["TotalConfirmed"];
 						let tDeaths: number = cDetails["TotalDeaths"];
@@ -77,23 +66,13 @@ export class worldDataService {
 							totalDeaths: tDeaths,
 							totalRecovered: tRecovered
 						};
-						countryInfo[cDetails.Slug] = countryData
-
+						if(cDetails.Slug === country){
+							promptCountryLiveData = countryData;
+						}
 						this.firestore.collection("live_data").doc("live").collection("countries").doc(cDetails.Slug).set(countryData, {merge: true});
 						// localStorage.setItem("daily-live-data", JSON.stringify(liveData));
 					}
-					let promises: Array<Promise<any>> = [];
-					for (let country of countryList){
-						if(!Object.keys(countryInfo).includes(country)){
-							promises.push(this.firestore.collection("live_data").doc("live")
-							.collection("countries").doc(country).get().toPromise().then((res)=>{
-								countryInfo[country] = res.data()
-							}))
-						}
-					}
-					return Promise.all(promises).then(()=>{
-						return countryInfo
-					})
+					return promptCountryLiveData
 				});
 			}
 		});
@@ -101,15 +80,17 @@ export class worldDataService {
 	  
 	async loadDailyData(dateArray: Array<Date>): Promise<any>{
 		let dailyDataDocArray: Array<Promise<any>> = [];
-		let lastUpdated: number|undefined;
+		let lastUpdated: number = Date.now();
 		for (const date of dateArray) {
 			dailyDataDocArray.push(this.firestore.collection("daily_data").doc(this.toDateString(date))
 			.collection("countries").doc("world").get().toPromise())
 		}
 		console.log("before Promise.all, dailyDataDocArray is")
 		return Promise.all(dailyDataDocArray).then((dailyDataDocArray)=>{
+			console.log("after Promise.all, dailyDataDocArray is")
+
 			dailyDataDocArray.forEach(dailyDataDoc =>{
-				if(dailyDataDoc.get("lastUpdated") && (!lastUpdated || lastUpdated > dailyDataDoc.get("lastUpdated").toDate().getTime())){
+				if(dailyDataDoc.get("lastUpdated") && lastUpdated > dailyDataDoc.get("lastUpdated").toDate().getTime()){
 					lastUpdated = dailyDataDoc.get("lastUpdated").toDate().getTime()
 				}
 			})
@@ -147,7 +128,8 @@ export class worldDataService {
 					headers: new HttpHeaders({ "Content-Type": "application/json"})
 				};
 			
-				let api_url: string = "https://corona.lmao.ninja/v2/historical/all"
+				let api_url: string = "https://api.covid19api.com/world?from=" + this.toDateString(dateArray[0]) + "T00:00:00Z&to=" +
+				this.toDateString(dateArray[dateArray.length-1]) + "T00:00:00Z"
 
 				return this.httpClient.get(api_url, httpOptions).toPromise().then((dailyDataArray: any) =>{
 					console.log("got daily data array from API")
@@ -156,32 +138,31 @@ export class worldDataService {
 					let totalRecoveredArray: number[] = new Array();
 					let totalDeathsArray: number[] = new Array();
 					let datesArray: string[] = new Array();
-
-					let dates = Object.keys(dailyDataArray["cases"]);
 		
-					for (let index of Array.from(Array(dates.length).keys())){
-						let date = dates[index];
-						let dateString: string = this.toDateString(new Date(date));
-						let tConfirmed = dailyDataArray["cases"][date];
-						let tRecovered = dailyDataArray["recovered"][date];
-						let tDeaths = dailyDataArray["deaths"][date];
-
-						totalConfirmedArray.push(tConfirmed);
-						totalRecoveredArray.push(tRecovered);
-						totalDeathsArray.push(tDeaths);
+					for (let dailyData of dailyDataArray){
+						totalConfirmedArray.push(dailyData["TotalConfirmed"]);
+						totalRecoveredArray.push(dailyData["TotalRecovered"]);
+						totalDeathsArray.push(dailyData["TotalDeaths"]);
+					}
+					totalConfirmedArray = totalConfirmedArray.sort((a, b) => a - b);
+					totalRecoveredArray = totalRecoveredArray.sort((a_1, b_1) => a_1 - b_1);
+					totalDeathsArray = totalDeathsArray.sort((a_2, b_2) => a_2 - b_2);
+		
+					for (let index of Array.from(Array(totalConfirmedArray.length).keys())) {
+						let dateString: string = this.toDateString(dateArray[index]);
 						datesArray.push(dateString)
-
+		
 						let worldDailyData: DailyCountryData = {
 							id: dateString,
-							totalConfirmed: tConfirmed,
-							totalRecovered: tRecovered,
-							totalDeaths: tDeaths,
+							totalConfirmed: totalConfirmedArray[index],
+							totalRecovered: totalRecoveredArray[index],
+							totalDeaths: totalDeathsArray[index],
 							lastUpdated: new Date()
 						}
-						this.firestore.collection("daily_data").doc(dateString)
-						.collection("countries").doc("world").set(worldDailyData,{merge: true});
+						this.firestore.collection("daily_data").doc(dateString).collection("countries").doc("world")
+						.set(worldDailyData,{merge: true});
+						// localStorage.setItem("daily-data-"+this.toDateString(dateArray[index]), JSON.stringify(worldDailyData))
 					}
-
 					return {
 						dates: datesArray,
 						totalConfirmed: totalConfirmedArray,

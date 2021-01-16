@@ -20,7 +20,6 @@ export class newsService {
         user: news!.user
       });
     }
-
     getNews(country: string){
       return this.firestore.collection("countries").doc(country)
       .collection("news").valueChanges()

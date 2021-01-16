@@ -24,5 +24,7 @@
             </tbody>
         </table>
     </div>
-    <app-add-news></app-add-news>
+    <div *ngIf="userService.addNewsAuthorized() == true">
+        <app-add-news></app-add-news>
+    </div>
 </div>

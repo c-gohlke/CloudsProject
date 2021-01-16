@@ -3,6 +3,7 @@ import { worldDataService } from '../../services/world-data.service';
 import { LiveData } from '../../models/live-data.model';
 import { Label } from 'ng2-charts';
 import { ChartOptions, ChartType } from 'chart.js';
+import { ThrowStmt } from '@angular/compiler';
 
 @Component({
 		selector: 'app-world-live',
@@ -28,17 +29,18 @@ export class WorldLiveComponent implements OnInit {
 	constructor(public worldDataService: worldDataService){}
 	async ngOnInit(): Promise<void> {
 		console.log("loading live data")
-		this.liveData = await this.worldDataService.loadLiveData();
-
-		console.log("live data loaded");
-		this.pieChartData = [{
-			data: [
-				this.liveData["totalDeaths"],
-				this.liveData["totalRecovered"],
-				this.liveData["activeConfirmed"]
-			],
-		}];
-		this.deathRateString =  (this.liveData.deathRate!*100).toFixed(2) + "%";
-		this.recoveryRateString =  (this.liveData.recoveryRate!*100).toFixed(2) + "%";
+		this.worldDataService.loadLiveData([]).then((countryDataObj: any)=>{
+			this.liveData = countryDataObj["world"]
+			console.log("live data loaded");
+			this.pieChartData = [{
+				data: [
+					this.liveData["totalDeaths"],
+					this.liveData["totalRecovered"],
+					this.liveData["activeConfirmed"]
+				],
+			}];
+			this.deathRateString =  (this.liveData.deathRate!*100).toFixed(2) + "%";
+			this.recoveryRateString =  (this.liveData.recoveryRate!*100).toFixed(2) + "%";
+		});
 	}	
 }
