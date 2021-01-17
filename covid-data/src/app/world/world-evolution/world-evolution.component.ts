@@ -34,11 +34,11 @@ export class WorldEvolutionComponent implements OnInit {
 
 	constructor(public worldDataService: worldDataService){}
 	async ngOnInit(): Promise<void> {
-		let since: Date = new Date("2020-04-13");
+		// let since: Date = new Date("2020-04-13");
+		let since: Date = new Date("2020-12-19");
 		let dateArray: Array<Date> = this.worldDataService.getDaysArray(since, new Date())
-		console.log("Loading daily data")
+
 		this.worldDataService.loadDailyData(dateArray).then((dailyDataArray: any) => {
-			console.log("World daily data loaded")
 			let newDeaths = new Array()
 
 			let newRecovered = new Array()

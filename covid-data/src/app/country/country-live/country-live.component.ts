@@ -33,7 +33,7 @@ export class CountryLiveComponent implements OnInit {
 	async ngOnInit(): Promise<void> {
 		this.country = this.route.snapshot.paramMap.get("country")!;
 		this.worldDataService.loadLiveData([this.country]).then((countryDataObj : any)=>{
-			console.log("Live data loaded");
+			console.log("Live Country Data loaded");
 			this.liveData  = countryDataObj[this.country];
 			this.pieChartData = [{
 				data: [

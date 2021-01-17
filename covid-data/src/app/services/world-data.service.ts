@@ -14,8 +14,10 @@ export class worldDataService {
 	){}
 
   	async loadLiveData(countryList: string[]): Promise<any>{
+		console.log("Loading Live Data")
 		return this.firestore.collection("live_data").doc("live").collection("countries").doc("world").get().toPromise().then((res: any)=>{
 			if(res.get("lastUpdated") && new Date().getTime() - res.get("lastUpdated").toDate().getTime()<1000*3600*24){
+				console.log("Firebase Live Data is up to date. Loading from Firebase")
 				let countryInfo: any = new Object()
 				let liveWorldData: LiveData = res.data();
 				let promises: Array<Promise<any>> = [];
@@ -32,14 +34,17 @@ export class worldDataService {
 					}));
 				}
 				return Promise.all(promises).then(()=>{
+					console.log("Live Data loaded from Firebase")
 					return countryInfo
 				})
 			} else {
-				console.log("live data not up to date");
+				console.log("Firebase Live Data NOT up to date, loading from API");
 				const httpOptions = {
 					headers: new HttpHeaders({ "Content-Type": "application/json"})
 				};
 				return this.httpClient.get("https://api.covid19api.com/summary", httpOptions).toPromise().then((summaryData: any)=>{
+					let promises: Array<Promise<any>> = [];
+					console.log("Live Data Loaded from API, updating to firebase")
 					let countryInfo: any = new Object()
 
 					let tWorldConfirmed: number = summaryData["Global"]["TotalConfirmed"];
@@ -58,9 +63,10 @@ export class worldDataService {
 						totalDeaths: tWorldDeaths,
 						totalRecovered: tWorldRecovered
 					};
-
 					countryInfo["world"] = liveWorldData
-							
+					promises.push(this.firestore.collection("live_data").doc("live").collection("countries")
+					.doc("world").set(liveWorldData, {merge: true}));
+
 					for (let cDetails of summaryData["Countries"]){
 						let tConfirmed: number = cDetails["TotalConfirmed"];
 						let tDeaths: number = cDetails["TotalDeaths"];
@@ -79,10 +85,12 @@ export class worldDataService {
 						};
 						countryInfo[cDetails.Slug] = countryData
 
-						this.firestore.collection("live_data").doc("live").collection("countries").doc(cDetails.Slug).set(countryData, {merge: true});
+						promises.push(this.firestore.collection("live_data").doc("live").collection("countries")
+						.doc(cDetails.Slug).set(countryData, {merge: true}));
 						// localStorage.setItem("daily-live-data", JSON.stringify(liveData));
 					}
-					let promises: Array<Promise<any>> = [];
+					// API, doesn't return every country (WHY???). E.G. Canada not in list on 16.01.2020
+					// if Country is not in list, we load the most recent data for that country, even if a little outdated
 					for (let country of countryList){
 						if(!Object.keys(countryInfo).includes(country)){
 							promises.push(this.firestore.collection("live_data").doc("live")
@@ -92,6 +100,7 @@ export class worldDataService {
 						}
 					}
 					return Promise.all(promises).then(()=>{
+						console.log("Live Data updated to Firebase")
 						return countryInfo
 					})
 				});
@@ -100,13 +109,13 @@ export class worldDataService {
 	}
 	  
 	async loadDailyData(dateArray: Array<Date>): Promise<any>{
+		console.log("Loading Daily Data")
 		let dailyDataDocArray: Array<Promise<any>> = [];
 		let lastUpdated: number|undefined;
 		for (const date of dateArray) {
 			dailyDataDocArray.push(this.firestore.collection("daily_data").doc(this.toDateString(date))
 			.collection("countries").doc("world").get().toPromise())
 		}
-		console.log("before Promise.all, dailyDataDocArray is")
 		return Promise.all(dailyDataDocArray).then((dailyDataDocArray)=>{
 			dailyDataDocArray.forEach(dailyDataDoc =>{
 				if(dailyDataDoc.get("lastUpdated") && (!lastUpdated || lastUpdated > dailyDataDoc.get("lastUpdated").toDate().getTime())){
@@ -115,7 +124,8 @@ export class worldDataService {
 			})
 			
 			if(lastUpdated && new Date().getTime() - lastUpdated<1000*3600*24){
-				console.log("not updating world daily data")
+				console.log("Firebase World Daily Data up to date.")
+				console.log("World Daily Data loaded from Firebase")
 	
 				let totalConfirmedArray: number[] = new Array();
 				let totalRecoveredArray: number[] = new Array();
@@ -142,7 +152,7 @@ export class worldDataService {
 					totalDeaths: totalDeathsArray,
 				};
 			} else {
-				console.log("updating world daily data")
+				console.log("Firebase World Daily Data NOT up to date, loading from API")
 				const httpOptions = {
 					headers: new HttpHeaders({ "Content-Type": "application/json"})
 				};
@@ -150,12 +160,13 @@ export class worldDataService {
 				let api_url: string = "https://corona.lmao.ninja/v2/historical/all"
 
 				return this.httpClient.get(api_url, httpOptions).toPromise().then((dailyDataArray: any) =>{
-					console.log("got daily data array from API")
+					console.log("World Daily Data received, updating Firebase")
 	
 					let totalConfirmedArray: number[] = new Array();
 					let totalRecoveredArray: number[] = new Array();
 					let totalDeathsArray: number[] = new Array();
 					let datesArray: string[] = new Array();
+					let promises: Array<Promise<any>> = [];
 
 					let dates = Object.keys(dailyDataArray["cases"]);
 		
@@ -178,16 +189,18 @@ export class worldDataService {
 							totalDeaths: tDeaths,
 							lastUpdated: new Date()
 						}
-						this.firestore.collection("daily_data").doc(dateString)
-						.collection("countries").doc("world").set(worldDailyData,{merge: true});
+						promises.push(this.firestore.collection("daily_data").doc(dateString)
+						.collection("countries").doc("world").set(worldDailyData,{merge: true}));
 					}
-
-					return {
-						dates: datesArray,
-						totalConfirmed: totalConfirmedArray,
-						totalRecovered: totalRecoveredArray,
-						totalDeaths: totalDeathsArray,
-					};
+					return Promise.all(promises).then(()=>{
+						console.log("World Daily Data updated to Firebase")
+						return {
+							dates: datesArray,
+							totalConfirmed: totalConfirmedArray,
+							totalRecovered: totalRecoveredArray,
+							totalDeaths: totalDeathsArray,
+						};
+					})
 				})
 			}
 		});

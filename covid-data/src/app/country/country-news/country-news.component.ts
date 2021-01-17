@@ -17,7 +17,7 @@ export class CountryNewsComponent implements OnInit {
 
   ngOnInit(): void {
     this.country = this.route.snapshot.paramMap.get("country")!
-    this.newsService.getNews(this.country).subscribe((news: any[])=>{
+    this.newsService.getNews([this.country]).then((news: any[])=>{
       this.newsList = news;
     });
   }

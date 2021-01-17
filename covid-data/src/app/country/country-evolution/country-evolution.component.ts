@@ -42,8 +42,7 @@ export class CountryEvolutionComponent implements OnInit {
 		let dateArray: Array<Date> = this.countryDataService.getDaysArray(since, new Date())
 		
 		this.countryDataService.loadDailyCountryData(this.country, dateArray).then((dailyDataArray: any) => {
-			console.log("Country daily data loaded")
-			console.log(dailyDataArray)
+			console.log("Daily Country Data loaded")
 			let newDeaths = new Array()
 
 			let newRecovered = new Array()

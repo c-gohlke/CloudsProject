@@ -15,7 +15,6 @@ import { WorldEvolutionComponent } from './world/world-evolution/world-evolution
 import { CountryLiveComponent } from './country/country-live/country-live.component';
 import { CountryEvolutionComponent } from './country/country-evolution/country-evolution.component';
 import { NewsComponent } from './world/news/news.component';
-import { AddNewsComponent } from './world/news/add-news.component';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
@@ -24,7 +23,6 @@ import { FooterComponent } from './footer/footer.component';
 import { CountryNewsComponent } from './country/country-news/country-news.component';
 import {MatToolbarModule} from '@angular/material/toolbar';
 import { AuthComponent } from './auth/auth.component';
-import { CountryTableComponent } from './world/country-table/country-table.component';
 import { MatSortModule } from '@angular/material/sort';
 import { MatTableModule } from '@angular/material/table';
 
@@ -38,9 +36,7 @@ import { MatTableModule } from '@angular/material/table';
     CountryLiveComponent,
     CountryEvolutionComponent,
     CountryNewsComponent,
-    CountryTableComponent,
     NewsComponent,
-    AddNewsComponent,
     HeaderComponent,
     FooterComponent,
     AuthComponent

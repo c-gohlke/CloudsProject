@@ -17,7 +17,7 @@
             </thead>
             <tbody>
                 <tr *ngFor="let news of newsList">
-                    <td>{{ news.date?.toDate() | date}}</td>
+                    <td>{{ news.date }}</td>
                     <td>{{ news.description }}</td>
                     <td>{{ news.user }}</td>
                 </tr>
