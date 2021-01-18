@@ -64,8 +64,8 @@ export class worldDataService {
 						totalRecovered: tWorldRecovered
 					};
 					countryInfo["world"] = liveWorldData
-					promises.push(this.firestore.collection("live_data").doc("live").collection("countries")
-					.doc("world").set(liveWorldData, {merge: true}));
+					this.firestore.collection("live_data").doc("live").collection("countries")
+					.doc("world").set(liveWorldData, {merge: true})
 
 					for (let cDetails of summaryData["Countries"]){
 						let tConfirmed: number = cDetails["TotalConfirmed"];
@@ -85,8 +85,8 @@ export class worldDataService {
 						};
 						countryInfo[cDetails.Slug] = countryData
 
-						promises.push(this.firestore.collection("live_data").doc("live").collection("countries")
-						.doc(cDetails.Slug).set(countryData, {merge: true}));
+						this.firestore.collection("live_data").doc("live").collection("countries")
+						.doc(cDetails.Slug).set(countryData, {merge: true})
 						// localStorage.setItem("daily-live-data", JSON.stringify(liveData));
 					}
 					// API, doesn't return every country (WHY???). E.G. Canada not in list on 16.01.2020
@@ -166,7 +166,6 @@ export class worldDataService {
 					let totalRecoveredArray: number[] = new Array();
 					let totalDeathsArray: number[] = new Array();
 					let datesArray: string[] = new Array();
-					let promises: Array<Promise<any>> = [];
 
 					let dates = Object.keys(dailyDataArray["cases"]);
 		
@@ -188,19 +187,16 @@ export class worldDataService {
 							totalRecovered: tRecovered,
 							totalDeaths: tDeaths,
 							lastUpdated: new Date()
-						}
-						promises.push(this.firestore.collection("daily_data").doc(dateString)
-						.collection("countries").doc("world").set(worldDailyData,{merge: true}));
-					}
-					return Promise.all(promises).then(()=>{
-						console.log("World Daily Data updated to Firebase")
-						return {
-							dates: datesArray,
-							totalConfirmed: totalConfirmedArray,
-							totalRecovered: totalRecoveredArray,
-							totalDeaths: totalDeathsArray,
 						};
-					})
+						this.firestore.collection("daily_data").doc(dateString)
+						.collection("countries").doc("world").set(worldDailyData,{merge: true});
+					}	
+					return {
+						dates: datesArray,
+						totalConfirmed: totalConfirmedArray,
+						totalRecovered: totalRecoveredArray,
+						totalDeaths: totalDeathsArray,
+					};
 				})
 			}
 		});

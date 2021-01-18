@@ -91,15 +91,13 @@ export class countryDataService {
 						promises.push(this.firestore.collection("daily_data").doc(this.toDateString(date))
 						.collection("countries").doc(country).set(dailyCountryData,{merge: true}))
 					}
-					return Promise.all(promises).then(()=>{
-						console.log("Country Daily Data updated to firebase")
-						return {
-							dates: dateStringArray,
-							totalConfirmed: totalConfirmedArray,
-							totalRecovered: totalRecoveredArray,
-							totalDeaths: totalDeathsArray,
-						};
-					})
+					console.log("Country Daily Data updated to firebase")
+					return {
+						dates: dateStringArray,
+						totalConfirmed: totalConfirmedArray,
+						totalRecovered: totalRecoveredArray,
+						totalDeaths: totalDeathsArray,
+					};
 				});
 			}
 		});

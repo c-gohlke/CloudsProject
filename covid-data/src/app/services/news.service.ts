@@ -13,7 +13,7 @@ export class newsService {
 		public httpClient: HttpClient){}
 
 		addNews(news?: News){
-			return this.firestore.collection("countries").doc(news!.country)
+			this.firestore.collection("countries").doc(news!.country)
 			.collection("news").doc(news!.id).set({
 				description: news!.description,
 				date: news!.date,
